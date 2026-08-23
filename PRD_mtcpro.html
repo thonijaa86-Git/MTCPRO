@@ -1,0 +1,52 @@
+# Maintenance Management System (MEP) — "MTCPRO"
+
+Sistem manajemen pemeliharaan Mechanical, Electrical, dan Plumbing (MEP) berbahasa Indonesia dengan 4 role: **Admin, Teknisi, Supervisor, Manager**. Desain mengikuti arah "Industrial utility grid": sidebar gelap slate-900, aksen biru (#3b82f6), font Inter + JetBrains Mono, badge status berwarna, KPI cards, dan tabel data padat.
+
+## Backend — Supabase
+
+Mengaktifkan Supabase Cloud untuk database, autentikasi, dan penyimpanan data:
+
+- **Auth**: halaman Login & Pendaftaran (email + password). Role disimpan di tabel `user_roles` terpisah (enum: `admin`, `teknisi`, `supervisor`, `manager`) dengan fungsi `has_role()` security-definer. Pendaftar baru default ke role `teknisi`; admin dapat mengubah role lewat menu Team.
+- **Tabel database** (dengan RLS + GRANT lengkap, plus data contoh/seed di migration agar halaman langsung hidup):
+  - `profiles` — nama, email, avatar user
+  - `user_roles` — role per user
+  - `assets` — aset MEP (nama, kategori Mechanical/Electrical/Plumbing, lokasi, status, kondisi)
+  - `work_orders` — ID WO, aset, deskripsi, prioritas (Kritis/Tinggi/Medium/Rendah), status (Open/Proses/Pending/Selesai), teknisi penanggung jawab, tanggal
+  - `maintenance_schedules` — jadwal preventif per aset, frekuensi, tanggal berikutnya, penanggung jawab (internal/vendor)
+  - `spare_parts` — SKU, nama, stok, threshold minimum, kategori
+  - `vendors` — nama vendor, kontak, spesialisasi
+  - `menu_permissions` — pengaturan admin: menu mana yang bisa diakses tiap role (teknisi/supervisor/manager)
+
+## Halaman & Struktur Route
+
+1. **Login & Pendaftaran** (`/auth`) — form login/daftar dengan toggle, gaya industrial sesuai desain; redirect sesuai role setelah login.
+2. **Halaman Admin** — mengakses **semua menu** sidebar:
+   - **Dashboard** — KPI cards (Total Aset, WO Open, Jadwal Preventif, Teknisi Aktif), tabel Work Order terbaru, Jadwal Mendatang, ringkasan tim
+   - **Pengelolaan Aset** — tabel aset MEP + tambah/edit/hapus, filter kategori & status
+   - **Work Order** — daftar WO lengkap, buat WO baru, assign teknisi, ubah status/prioritas
+   - **Maintenance Schedule** — jadwal preventif per aset, tambah jadwal
+   - **Pengelolaan Spare Part** — stok suku cadang, indikator stok kritis (di bawah threshold)
+   - **Team** — daftar user, ubah role, kelola anggota tim
+   - **Report** — ringkasan laporan (WO per status, WO per kategori, performa penyelesaian)
+   - **Pengelolaan Vendor** — daftar vendor + tambah/edit/hapus
+   - **Pengaturan Akses Menu** — toggle menu yang tampil untuk role Teknisi, Supervisor, Manager (disimpan di `menu_permissions`)
+3. **Halaman Teknisi** (`/teknisi`) — sidebar hanya menampilkan menu yang diizinkan admin; fokus "Tugas Saya": WO yang di-assign, update status pekerjaan
+4. **Halaman Supervisor** (`/supervisor`) — menu sesuai pengaturan admin; monitoring WO tim, approval
+5. **Halaman Manager** (`/manager`) — menu sesuai pengaturan admin; ringkasan dashboard, report, jadwal
+
+Semua halaman role memakai komponen layout yang sama (`AppSidebar` collapsible dengan ikon + nomor mono, header dengan badge role, avatar user) — hanya isi menu berbeda sesuai `menu_permissions`. Guard `_authenticated` mengarahkan user belum login ke `/auth`, dan setiap role diarahkan ke halamannya masing-masing.
+
+## Desain (dari prototype v1)
+
+- Sidebar `w-72` bg slate-900, item menu bernomor mono (01–08), item aktif bg slate-800
+- Font: Inter (body) + JetBrains Mono (ID/nomor), dimuat via `<link>` di root
+- KPI cards putih rounded-xl border slate-200; badge status: rose=Kritis, amber=Proses, slate=Pending, emerald=Selesai
+- Token warna didefinisikan sebagai semantic tokens di `src/styles.css` (oklch), tidak ada hardcode hex di komponen
+- Avatar user di footer sidebar + nama & role
+
+## Teknis
+
+- TanStack Start + file routes; `createServerFn` untuk operasi data terproteksi (middleware `requireSupabaseAuth`), loader hanya di bawah `_authenticated`
+- Setiap route konten punya `head()` metadata unik (title, description, og) berbahasa Indonesia
+- Sign-out hygiene lengkap (cancel queries, clear cache, signOut, navigate `/auth`)
+- Seed data contoh di migration: aset, work order, jadwal, spare part, vendor, dan menu permission default agar semua halaman langsung terisi

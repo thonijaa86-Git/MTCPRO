@@ -1,0 +1,166 @@
+export type UserRole = 'admin' | 'teknisi' | 'supervisor' | 'manager';
+
+export type MepCategory = 'Mechanical' | 'Electrical' | 'Plumbing';
+
+export type AssetStatus = 'Operasional' | 'Perbaikan' | 'Kritis' | 'Non-Aktif';
+
+export type AssetCondition = 'Sangat Baik' | 'Baik' | 'Perlu Perhatian' | 'Rusak';
+
+export type WOPriority = 'Kritis' | 'Tinggi' | 'Medium' | 'Rendah';
+
+export type WOStatus = 'Open' | 'Proses' | 'Pending' | 'Selesai' | 'Disetujui';
+
+export type ScheduleFrequency = 'Harian' | 'Mingguan' | 'Bulanan' | 'Triwulan' | 'Semester' | 'Tahunan';
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar: string;
+  phone?: string;
+  specialization?: string;
+  department?: string;
+  joinedDate?: string;
+}
+
+export interface Asset {
+  id: string;
+  assetTag: string; // e.g. "MEP-MEC-001"
+  name: string;
+  category: MepCategory;
+  location: string;
+  status: AssetStatus;
+  condition: AssetCondition;
+  manufacturer?: string;
+  model?: string;
+  serialNumber?: string;
+  installDate?: string;
+  lastMaintenance?: string;
+  nextMaintenance?: string;
+  capacity?: string;
+  powerRating?: string;
+  notes?: string;
+}
+
+export interface WorkOrder {
+  id: string;
+  woNumber: string; // e.g. "WO-2026-0801"
+  title: string;
+  description: string;
+  assetId: string;
+  assetName: string;
+  assetTag: string;
+  category: MepCategory;
+  location: string;
+  priority: WOPriority;
+  status: WOStatus;
+  assignedToId?: string;
+  assignedToName?: string;
+  createdById: string;
+  createdByName: string;
+  createdAt: string;
+  dueDate?: string;
+  completedAt?: string;
+  approvedById?: string;
+  approvedByName?: string;
+  approvedAt?: string;
+  estimatedHours?: number;
+  actualHours?: number;
+  stepsCompleted?: string[];
+  totalSteps?: string[];
+  sparePartsUsed?: {
+    partId: string;
+    partName: string;
+    quantity: number;
+    sku: string;
+  }[];
+  technicianNotes?: string;
+  completionProofUrl?: string;
+}
+
+export interface MaintenanceSchedule {
+  id: string;
+  scheduleCode: string; // e.g. "SCH-PM-001"
+  title: string;
+  assetId: string;
+  assetName: string;
+  assetTag: string;
+  category: MepCategory;
+  frequency: ScheduleFrequency;
+  lastRunDate?: string;
+  nextDueDate: string;
+  assignedType: 'internal' | 'vendor';
+  assignedToId?: string;
+  assignedToName?: string;
+  vendorId?: string;
+  vendorName?: string;
+  checklistItems: string[];
+  estimatedDuration: string;
+  status: 'Aktif' | 'Ditunda' | 'Selesai';
+}
+
+export interface SparePart {
+  id: string;
+  sku: string; // e.g. "PRT-HVAC-01"
+  name: string;
+  category: MepCategory;
+  stock: number;
+  minThreshold: number;
+  unit: string;
+  unitCost: number;
+  locationRack: string;
+  compatibleAssets: string[];
+  supplier?: string;
+  lastRestocked?: string;
+}
+
+export interface Vendor {
+  id: string;
+  name: string;
+  contactPerson: string;
+  email: string;
+  phone: string;
+  specialization: string[]; // e.g. ["HVAC / Chiller", "Lift & Elevator"]
+  contractStatus: 'Aktif' | 'Review' | 'Expired';
+  rating: number; // 1-5
+  address: string;
+  activeJobsCount: number;
+  contractExpiry: string;
+}
+
+export interface MenuPermission {
+  menuKey: string;
+  label: string;
+  iconName: string;
+  menuNumber: string; // "01", "02", etc.
+  description: string;
+  // Which roles are allowed to access this menu (admin is always true)
+  rolesAllowed: {
+    teknisi: boolean;
+    supervisor: boolean;
+    manager: boolean;
+  };
+}
+
+export interface ActivityLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  userName: string;
+  userRole: UserRole;
+  action: string;
+  entityType: 'asset' | 'work_order' | 'schedule' | 'spare_part' | 'vendor' | 'permission' | 'user';
+  entityId: string;
+  details: string;
+}
+
+export interface SystemNotification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'critical' | 'success';
+  timestamp: string;
+  read: boolean;
+  linkMenu?: string;
+}
