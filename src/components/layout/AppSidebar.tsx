@@ -53,10 +53,13 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
     }
   };
 
-  // Filter menus based on dynamic permissions
+  // Filter menus based on dynamic permissions & strict role rules
   const accessibleMenus = menuPermissions.filter((menu) => {
+    if (role === 'teknisi') {
+      return menu.menuKey === 'dashboard' || menu.menuKey === 'work_orders' || menu.menuKey === 'schedules';
+    }
     if (role === 'admin') return true;
-    return menu.rolesAllowed[role] === true;
+    return menu.rolesAllowed && menu.rolesAllowed[role] === true;
   });
 
   // Calculate badges

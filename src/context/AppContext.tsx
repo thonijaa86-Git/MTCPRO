@@ -240,7 +240,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (s && s.length > 0) setSchedules(s);
         if (sp && sp.length > 0) setSpareParts(sp);
         if (v && v.length > 0) setVendors(v);
-        if (mp && mp.length > 0) setMenuPermissions(mp);
+        if (mp && mp.length > 0) {
+          const normalizedMp = mp.map((m) => ({
+            ...m,
+            rolesAllowed: {
+              ...m.rolesAllowed,
+              teknisi: m.menuKey === 'dashboard' || m.menuKey === 'work_orders' || m.menuKey === 'schedules'
+            }
+          }));
+          setMenuPermissions(normalizedMp);
+        }
       } catch (err) {
         console.error('Supabase initial fetch failed, using local/cache store:', err);
       }
@@ -357,6 +366,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const isMenuAccessibleForRole = (menuKey: string, role: UserRole): boolean => {
+    if (role === 'teknisi') {
+      return menuKey === 'dashboard' || menuKey === 'work_orders' || menuKey === 'schedules';
+    }
     if (role === 'admin') return true;
     const perm = menuPermissions.find((p) => p.menuKey === menuKey);
     if (!perm) return true;
