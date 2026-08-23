@@ -496,7 +496,7 @@ export const AssetsView: React.FC = () => {
         </Modal>
       )}
 
-      {/* Add / Edit Asset Modal with EXACT required form fields */}
+      {/* Add / Edit Asset Modal with compact, responsive form fields */}
       <Modal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => {
@@ -508,11 +508,11 @@ export const AssetsView: React.FC = () => {
         subtitle="Formulir pendataan peralatan, kategori fasilitas, spesifikasi dan tahun instalasi"
         maxWidth="2xl"
       >
-        <form onSubmit={isAddModalOpen ? handleSaveAdd : handleSaveEdit} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={isAddModalOpen ? handleSaveAdd : handleSaveEdit} className="space-y-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {/* 1. NO Aset */}
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 NO Aset <span className="text-rose-500">*</span>
               </label>
               <input
@@ -520,36 +520,21 @@ export const AssetsView: React.FC = () => {
                 required
                 value={formData.assetTag}
                 onChange={(e) => setFormData({ ...formData, assetTag: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all text-xs"
                 placeholder="e.g. AST-HVAC-001"
               />
             </div>
 
-            {/* 2. Lokasi */}
+            {/* 2. Kategori (12 Dropdown Choices) */}
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Lokasi <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.location}
-                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all font-medium"
-                placeholder="e.g. Lantai 12 — Ruang AHU Sayap Barat"
-              />
-            </div>
-
-            {/* 3. Kategori (12 Dropdown Choices) */}
-            <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Kategori <span className="text-rose-500">*</span>
               </label>
               <select
                 required
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value as MepCategory })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-medium text-slate-800 transition-all"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-medium text-slate-800 transition-all text-xs"
               >
                 {ASSET_CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>
@@ -559,9 +544,9 @@ export const AssetsView: React.FC = () => {
               </select>
             </div>
 
-            {/* 4. Nama Aset */}
+            {/* 3. Nama Aset */}
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Nama Aset <span className="text-rose-500">*</span>
               </label>
               <input
@@ -569,28 +554,43 @@ export const AssetsView: React.FC = () => {
                 required
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-semibold text-slate-900 transition-all"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-semibold text-slate-900 transition-all text-xs"
                 placeholder="e.g. Centrifugal Water-Cooled Chiller #01"
+              />
+            </div>
+
+            {/* 4. Lokasi */}
+            <div className="sm:col-span-2">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                Lokasi <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all font-medium text-xs"
+                placeholder="e.g. Lantai 12 — Ruang AHU Sayap Barat"
               />
             </div>
 
             {/* 5. Spesifikasi */}
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Spesifikasi
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 value={formData.specification}
                 onChange={(e) => setFormData({ ...formData, specification: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-mono text-xs transition-all"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-mono text-xs transition-all"
                 placeholder="e.g. Kapasitas 500 TR, 320 kW (380V/3 Phase), Merk Daikin WMC-500-E, Freon R-134a"
               />
             </div>
 
             {/* 6. Tahun Pembuatan */}
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Tahun Pembuatan
               </label>
               <input
@@ -599,14 +599,14 @@ export const AssetsView: React.FC = () => {
                 max="2099"
                 value={formData.manufactureYear}
                 onChange={(e) => setFormData({ ...formData, manufactureYear: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all text-xs"
                 placeholder="e.g. 2022"
               />
             </div>
 
             {/* 7. Tahun Instalasi */}
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Tahun Instalasi
               </label>
               <input
@@ -615,18 +615,18 @@ export const AssetsView: React.FC = () => {
                 max="2099"
                 value={formData.installYear}
                 onChange={(e) => setFormData({ ...formData, installYear: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all text-xs"
                 placeholder="e.g. 2023"
               />
             </div>
 
-            {/* Status & Kondisi (Optional parameters) */}
+            {/* Status & Kondisi */}
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Status Operasional</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Status Operasional</label>
               <select
                 value={formData.status}
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as AssetStatus })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-medium"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-medium text-xs"
               >
                 <option value="Operasional">Operasional</option>
                 <option value="Perbaikan">Perbaikan</option>
@@ -636,11 +636,11 @@ export const AssetsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kondisi Fisik</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Kondisi Fisik</label>
               <select
                 value={formData.condition}
                 onChange={(e) => setFormData({ ...formData, condition: e.target.value as AssetCondition })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-medium"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-medium text-xs"
               >
                 <option value="Sangat Baik">Sangat Baik</option>
                 <option value="Baik">Baik</option>
@@ -650,20 +650,20 @@ export const AssetsView: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => {
                 setIsAddModalOpen(false);
                 setIsEditModalOpen(false);
               }}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
               Simpan Aset
             </button>

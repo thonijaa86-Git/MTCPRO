@@ -348,34 +348,34 @@ export const TeknisiTaskView: React.FC = () => {
         <Modal
           isOpen={isSubmitModalOpen}
           onClose={() => setIsSubmitModalOpen(false)}
-          title={`Konfirmasi Penyelesaian: ${activeTask.woNumber}`}
-          subtitle="Pastikan semua checklist telah dijalankan sesuai standar keselamatan K3"
+          title={`Konfirmasi Selesai: ${activeTask.woNumber}`}
+          subtitle="Verifikasi checklist dan penggunaan spare part sebelum dikirim ke SPV"
           maxWidth="md"
         >
-          <div className="space-y-4 text-xs">
-            <div className="p-4 bg-blue-50/70 border border-blue-200 rounded-xl text-blue-950 space-y-2">
-              <p className="font-semibold">
+          <div className="space-y-3 text-xs">
+            <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-lg text-blue-950 space-y-1.5">
+              <p className="font-semibold text-xs">
                 Apakah Anda yakin ingin menyelesaikan Work Order ini?
               </p>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 text-[11px]">
+              <ul className="list-disc list-inside space-y-0.5 text-slate-700 text-[11px]">
                 <li>{completedSteps.length} checklist tindakan ditandai selesai.</li>
                 <li>{usedParts.length} jenis suku cadang akan dipotong dari stok inventaris.</li>
                 <li>Status akan berpindah ke <strong>Selesai</strong> dan dikirim ke Supervisor untuk approval.</li>
               </ul>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setIsSubmitModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSubmitCompletion}
-                className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/30 cursor-pointer"
+                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/30 cursor-pointer text-xs"
               >
                 Ya, Submit Selesai
               </button>

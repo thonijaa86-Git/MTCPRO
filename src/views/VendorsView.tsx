@@ -296,59 +296,59 @@ export const VendorsView: React.FC = () => {
         subtitle="Informasi kontak, spesialisasi MEP dan masa berlaku kontrak"
         maxWidth="lg"
       >
-        <form onSubmit={isAddModalOpen ? handleSaveAdd : handleSaveEdit} className="space-y-4 text-xs">
+        <form onSubmit={isAddModalOpen ? handleSaveAdd : handleSaveEdit} className="space-y-3 text-xs">
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Nama Perusahaan Vendor (Wajib)</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Perusahaan Vendor (Wajib)</label>
             <input
               type="text"
               required
               value={formVendor.name}
               onChange={(e) => setFormVendor({ ...formVendor, name: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="e.g. PT Schneider Electric Partner Service"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Nama Contact Person (PIC)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Contact Person (PIC)</label>
               <input
                 type="text"
                 required
                 value={formVendor.contactPerson}
                 onChange={(e) => setFormVendor({ ...formVendor, contactPerson: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="e.g. Ir. Anton Wijaya"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">No. Telepon / Kantor</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">No. Telepon / Kantor</label>
               <input
                 type="text"
                 required
                 value={formVendor.phone}
                 onChange={(e) => setFormVendor({ ...formVendor, phone: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="+62 21 ..."
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Email Resmi Vendor</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Resmi Vendor</label>
             <input
               type="email"
               required
               value={formVendor.email}
               onChange={(e) => setFormVendor({ ...formVendor, email: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="service@vendor.co.id"
             />
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
               Spesialisasi Keahlian (Pisahkan dengan koma)
             </label>
             <input
@@ -356,18 +356,18 @@ export const VendorsView: React.FC = () => {
               required
               value={formVendor.specializationText}
               onChange={(e) => setFormVendor({ ...formVendor, specializationText: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="Chiller Water Cooled, Trafo 20kV, Fire Hydrant"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Status Kontrak</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Status Kontrak</label>
               <select
                 value={formVendor.contractStatus}
                 onChange={(e) => setFormVendor({ ...formVendor, contractStatus: e.target.value as any })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-medium"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-medium text-xs"
               >
                 <option value="Aktif">Aktif</option>
                 <option value="Review">Dalam Review</option>
@@ -376,29 +376,29 @@ export const VendorsView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Masa Berlaku Kontrak (Expiry)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Masa Berlaku Kontrak</label>
               <input
                 type="date"
                 required
                 value={formVendor.contractExpiry}
                 onChange={(e) => setFormVendor({ ...formVendor, contractExpiry: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Alamat Kantor / Workshop</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Alamat Kantor / Workshop</label>
             <textarea
               rows={2}
               value={formVendor.address}
               onChange={(e) => setFormVendor({ ...formVendor, address: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="Alamat lengkap bengkel kerja / kantor"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => {
@@ -406,13 +406,13 @@ export const VendorsView: React.FC = () => {
                 setIsEditModalOpen(false);
                 setEditingVendor(null);
               }}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
               Simpan Data Vendor
             </button>

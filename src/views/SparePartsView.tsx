@@ -284,9 +284,9 @@ export const SparePartsView: React.FC = () => {
           subtitle={`SKU: ${targetPartForRestock.sku} • Stok Sekarang: ${targetPartForRestock.stock} ${targetPartForRestock.unit}`}
           maxWidth="md"
         >
-          <div className="space-y-4 text-xs">
+          <div className="space-y-3 text-xs">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Jumlah Tambahan yang Diterima Gudang ({targetPartForRestock.unit})
               </label>
               <input
@@ -295,29 +295,29 @@ export const SparePartsView: React.FC = () => {
                 max={500}
                 value={restockAmount}
                 onChange={(e) => setRestockAmount(Number(e.target.value))}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold text-base focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold text-sm focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
 
-            <div className="p-3 bg-blue-50/70 border border-blue-200 rounded-xl text-blue-900">
-              <span className="font-bold">Estimasi Stok Akhir:</span>
+            <div className="p-2.5 bg-blue-50/70 border border-blue-200 rounded-lg text-blue-900">
+              <span className="font-bold text-[11px]">Estimasi Stok Akhir:</span>
               <p className="font-mono text-sm font-bold text-blue-700 mt-0.5">
                 {targetPartForRestock.stock + Number(restockAmount)} {targetPartForRestock.unit}
               </p>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setIsRestockModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleConfirmRestock}
-                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
               >
                 Konfirmasi Restok
               </button>
@@ -334,136 +334,141 @@ export const SparePartsView: React.FC = () => {
         subtitle="Registrasi SKU baru pada katalog inventaris maintenance"
         maxWidth="2xl"
       >
-        <form onSubmit={handleSaveAdd} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSaveAdd} className="space-y-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">SKU / Kode Part (Wajib)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">SKU / Kode Part (Wajib)</label>
               <input
                 type="text"
                 required
                 value={formPart.sku}
                 onChange={(e) => setFormPart({ ...formPart, sku: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono font-bold focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="e.g. PRT-MEC-BRG01"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Kategori MEP</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Kategori MEP</label>
               <select
                 value={formPart.category}
                 onChange={(e) => setFormPart({ ...formPart, category: e.target.value as MepCategory })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
-                <option value="Mechanical">Mechanical</option>
-                <option value="Electrical">Electrical</option>
-                <option value="Plumbing">Plumbing</option>
+                <option value="HVAC">HVAC</option>
+                <option value="Kelistrikan">Kelistrikan</option>
+                <option value="Genset">Genset</option>
+                <option value="Air bersih">Air Bersih</option>
+                <option value="IPAL">IPAL</option>
+                <option value="Hydrant">Hydrant</option>
+                <option value="Fire Alarm">Fire Alarm</option>
+                <option value="CCTV">CCTV</option>
               </select>
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">Nama Suku Cadang (Wajib)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Suku Cadang (Wajib)</label>
               <input
                 type="text"
                 required
                 value={formPart.name}
                 onChange={(e) => setFormPart({ ...formPart, name: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="e.g. Mechanical Seal Type 21 Carbon/Ceramic"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Stok Awal</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Stok Awal</label>
               <input
                 type="number"
                 min={0}
                 required
                 value={formPart.stock}
                 onChange={(e) => setFormPart({ ...formPart, stock: Number(e.target.value) })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Batas Minimum (Threshold Alert)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Batas Minimum (Threshold Alert)</label>
               <input
                 type="number"
                 min={1}
                 required
                 value={formPart.minThreshold}
                 onChange={(e) => setFormPart({ ...formPart, minThreshold: Number(e.target.value) })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Satuan</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Satuan</label>
               <input
                 type="text"
                 value={formPart.unit}
                 onChange={(e) => setFormPart({ ...formPart, unit: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="Pcs / Set / Liter / Meter"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Harga Satuan (IDR)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Harga Satuan (IDR)</label>
               <input
                 type="number"
                 min={0}
                 value={formPart.unitCost}
                 onChange={(e) => setFormPart({ ...formPart, unitCost: Number(e.target.value) })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Lokasi Rak Gudang</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Lokasi Rak Gudang</label>
               <input
                 type="text"
                 value={formPart.locationRack}
                 onChange={(e) => setFormPart({ ...formPart, locationRack: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="Rak M-02 (Baris B)"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Supplier / Rekanan</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Supplier / Rekanan</label>
               <input
                 type="text"
                 value={formPart.supplier}
                 onChange={(e) => setFormPart({ ...formPart, supplier: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="PT Mitra Teknik Utama"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">Kompatibel untuk Mesin (Pisahkan koma)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Kompatibel untuk Mesin (Pisahkan koma)</label>
               <input
                 type="text"
                 value={formPart.compatibleAssetsText}
                 onChange={(e) => setFormPart({ ...formPart, compatibleAssetsText: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="e.g. Pompa Booster, Chiller Daikin 500TR"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
               Simpan Suku Cadang
             </button>

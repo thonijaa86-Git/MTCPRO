@@ -53,30 +53,30 @@ export const Modal: React.FC<ModalProps> = ({
       />
 
       {/* Modal Container */}
-      <div className="min-h-full flex items-center justify-center p-4 text-center sm:p-6">
+      <div className="min-h-full flex items-center justify-center p-2 sm:p-4 text-center">
         <div
-          className={`relative bg-white rounded-2xl text-left shadow-2xl transform transition-all w-full ${getMaxWidthClass()} border border-slate-200/80 overflow-hidden animate-in zoom-in-95 duration-200`}
+          className={`relative bg-white rounded-xl sm:rounded-2xl text-left shadow-2xl transform transition-all w-full ${getMaxWidthClass()} border border-slate-200/90 max-h-[94vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 my-auto`}
         >
-          {/* Header */}
-          <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          {/* Header (Fixed height, no shrink) */}
+          <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80 shrink-0">
+            <div className="pr-2">
+              <h3 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2 leading-tight">
                 {title}
               </h3>
               {subtitle && (
-                <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+                <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-snug">{subtitle}</p>
               )}
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 rounded-lg transition-colors cursor-pointer shrink-0"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
           </div>
 
-          {/* Body */}
-          <div className="px-6 py-5 max-h-[80vh] overflow-y-auto">
+          {/* Body (Scrollable with smooth scrollbar) */}
+          <div className="px-4 sm:px-5 py-3.5 sm:py-4 overflow-y-auto flex-1 text-xs">
             {children}
           </div>
         </div>

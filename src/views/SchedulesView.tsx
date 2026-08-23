@@ -284,21 +284,21 @@ export const SchedulesView: React.FC = () => {
       <Modal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
-        title="Buat Jadwal Preventive Maintenance Baru"
-        subtitle="Otomatisasi siklus inspeksi dan pemeliharaan berkala"
+        title="Buat Jadwal Maintenance Baru"
+        subtitle="Rencanakan preventive maintenance berkala untuk menjaga keandalan fasilitas"
         maxWidth="2xl"
       >
-        <form onSubmit={handleSaveAdd} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSaveAdd} className="space-y-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Pilih Aset MEP (Wajib)
               </label>
               <select
                 required
                 value={formSchedule.assetId}
                 onChange={(e) => setFormSchedule({ ...formSchedule, assetId: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -309,7 +309,7 @@ export const SchedulesView: React.FC = () => {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Nama Jadwal Pemeliharaan (Wajib)
               </label>
               <input
@@ -317,17 +317,17 @@ export const SchedulesView: React.FC = () => {
                 required
                 value={formSchedule.title}
                 onChange={(e) => setFormSchedule({ ...formSchedule, title: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="e.g. Servis Rutin Bulanan Chiller Plant #01"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Frekuensi Pelaksanaan</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Frekuensi Pelaksanaan</label>
               <select
                 value={formSchedule.frequency}
                 onChange={(e) => setFormSchedule({ ...formSchedule, frequency: e.target.value as ScheduleFrequency })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 <option value="Harian">Harian</option>
                 <option value="Mingguan">Mingguan</option>
@@ -339,22 +339,22 @@ export const SchedulesView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Tanggal Jatuh Tempo Pertama</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Tanggal Jatuh Tempo Pertama</label>
               <input
                 type="date"
                 required
                 value={formSchedule.nextDueDate}
                 onChange={(e) => setFormSchedule({ ...formSchedule, nextDueDate: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Tipe Pelaksana</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Tipe Pelaksana</label>
               <select
                 value={formSchedule.assignedType}
                 onChange={(e) => setFormSchedule({ ...formSchedule, assignedType: e.target.value as 'internal' | 'vendor' })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 <option value="internal">Tim Teknisi Internal</option>
                 <option value="vendor">Vendor Rekanan Spesialis</option>
@@ -364,11 +364,11 @@ export const SchedulesView: React.FC = () => {
             <div>
               {formSchedule.assignedType === 'internal' ? (
                 <>
-                  <label className="block font-semibold text-slate-700 mb-1">Teknisi Penanggung Jawab</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Teknisi Penanggung Jawab</label>
                   <select
                     value={formSchedule.assignedToId}
                     onChange={(e) => setFormSchedule({ ...formSchedule, assignedToId: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                    className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                   >
                     {users.filter((u) => u.role === 'teknisi').map((t) => (
                       <option key={t.id} value={t.id}>
@@ -379,11 +379,11 @@ export const SchedulesView: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <label className="block font-semibold text-slate-700 mb-1">Pilih Vendor Rekanan</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Pilih Vendor Rekanan</label>
                   <select
                     value={formSchedule.vendorId}
                     onChange={(e) => setFormSchedule({ ...formSchedule, vendorId: e.target.value })}
-                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                    className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                   >
                     {vendors.map((v) => (
                       <option key={v.id} value={v.id}>
@@ -396,29 +396,29 @@ export const SchedulesView: React.FC = () => {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Checklist Item Pekerjaan (1 baris per langkah)
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 value={formSchedule.checklistText}
                 onChange={(e) => setFormSchedule({ ...formSchedule, checklistText: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsAddModalOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
               Simpan Jadwal
             </button>

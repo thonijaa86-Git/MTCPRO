@@ -658,17 +658,17 @@ export const WorkOrdersView: React.FC = () => {
         subtitle="Buat instruksi penanganan kerusakan atau preventive maintenance"
         maxWidth="2xl"
       >
-        <form onSubmit={handleSaveCreate} className="space-y-4 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSaveCreate} className="space-y-3 text-xs">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
-                Pilih Aset MEP yang Bermasalah / Diservis (Wajib)
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                Pilih Aset MEP yang Bermasalah / Diservis <span className="text-rose-500">*</span>
               </label>
               <select
                 required
                 value={newWO.assetId}
                 onChange={(e) => setNewWO({ ...newWO, assetId: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
@@ -679,21 +679,21 @@ export const WorkOrdersView: React.FC = () => {
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
-                Judul Instruksi Kerja (Wajib)
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                Judul Instruksi Kerja <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
                 value={newWO.title}
                 onChange={(e) => setNewWO({ ...newWO, title: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-medium"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-medium text-xs"
                 placeholder="e.g. Overhaul & Penggantian Seal Pompa Booster #01"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Deskripsi Detail Masalah & Temuan Lapangan
               </label>
               <textarea
@@ -701,17 +701,17 @@ export const WorkOrdersView: React.FC = () => {
                 required
                 value={newWO.description}
                 onChange={(e) => setNewWO({ ...newWO, description: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="Jelaskan kronologi, indikasi suara/getaran, error display kode, dsb."
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Tingkat Prioritas</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Tingkat Prioritas</label>
               <select
                 value={newWO.priority}
                 onChange={(e) => setNewWO({ ...newWO, priority: e.target.value as WOPriority })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 <option value="Kritis">Kritis (Operasional Gedung Terganggu)</option>
                 <option value="Tinggi">Tinggi (Segera dalam 24 Jam)</option>
@@ -721,11 +721,11 @@ export const WorkOrdersView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Tugaskan ke Teknisi</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Tugaskan ke Teknisi</label>
               <select
                 value={newWO.assignedToId}
                 onChange={(e) => setNewWO({ ...newWO, assignedToId: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-slate-800 focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 <option value="">-- Tugaskan Nanti --</option>
                 {technicians.map((t) => (
@@ -737,53 +737,53 @@ export const WorkOrdersView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Target Batas Waktu (Due Date)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Target Batas Waktu (Due Date)</label>
               <input
                 type="date"
                 required
                 value={newWO.dueDate}
                 onChange={(e) => setNewWO({ ...newWO, dueDate: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-mono"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-mono text-xs"
               />
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Estimasi Durasi Kerja (Jam)</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Estimasi Durasi Kerja (Jam)</label>
               <input
                 type="number"
                 min={1}
                 max={48}
                 value={newWO.estimatedHours}
                 onChange={(e) => setNewWO({ ...newWO, estimatedHours: Number(e.target.value) })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-mono"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-mono text-xs"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block font-semibold text-slate-700 mb-1">
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Tahapan Checklist Pengerjaan (1 baris per langkah)
               </label>
               <textarea
-                rows={3}
+                rows={2}
                 value={newWO.stepInputs}
                 onChange={(e) => setNewWO({ ...newWO, stepInputs: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 font-mono"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white font-mono text-xs"
                 placeholder="Tulis setiap checklist di baris baru..."
               />
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsCreateModalOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
               Terbitkan Work Order
             </button>

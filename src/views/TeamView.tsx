@@ -323,18 +323,18 @@ export const TeamView: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={() => setIsEditRoleModalOpen(false)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+                className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
               >
                 Batal
               </button>
               <button
                 type="button"
                 onClick={handleSaveRole}
-                className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
               >
                 Simpan Perubahan Role
               </button>
@@ -351,38 +351,38 @@ export const TeamView: React.FC = () => {
         subtitle="Daftarkan akun staf teknis atau manajemen fasilitas"
         maxWidth="lg"
       >
-        <form onSubmit={handleSaveAdd} className="space-y-4 text-xs">
+        <form onSubmit={handleSaveAdd} className="space-y-3 text-xs">
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Nama Lengkap (Wajib)</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Lengkap (Wajib)</label>
             <input
               type="text"
               required
               value={formUser.name}
               onChange={(e) => setFormUser({ ...formUser, name: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="e.g. Ir. Dimas Anggara"
             />
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Email Kerja (Wajib)</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Kerja (Wajib)</label>
             <input
               type="email"
               required
               value={formUser.email}
               onChange={(e) => setFormUser({ ...formUser, email: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="dimas@mtcpro.co.id"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5">
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">Role Awal</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Role Awal</label>
               <select
                 value={formUser.role}
                 onChange={(e) => setFormUser({ ...formUser, role: e.target.value as UserRole })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 <option value="teknisi">Teknisi</option>
                 <option value="supervisor">Supervisor</option>
@@ -392,39 +392,39 @@ export const TeamView: React.FC = () => {
             </div>
 
             <div>
-              <label className="block font-semibold text-slate-700 mb-1">No. Telepon / WhatsApp</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">No. Telepon / WhatsApp</label>
               <input
                 type="text"
                 value={formUser.phone}
                 onChange={(e) => setFormUser({ ...formUser, phone: e.target.value })}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
                 placeholder="+62 812-..."
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">Spesialisasi / Keahlian</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Spesialisasi / Keahlian</label>
             <input
               type="text"
               value={formUser.specialization}
               onChange={(e) => setFormUser({ ...formUser, specialization: e.target.value })}
-              className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               placeholder="e.g. Electrical Power Distribution & Trafo"
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+          <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
               onClick={() => setIsAddUserModalOpen(false)}
-              className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
+              className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
               Tambahkan Anggota
             </button>
