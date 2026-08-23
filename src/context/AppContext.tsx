@@ -60,7 +60,7 @@ interface AppContextType {
   
   // Auth & Roles
   login: (email: string, role?: UserRole) => boolean;
-  register: (name: string, email: string, role?: UserRole, specialization?: string) => boolean;
+  register: (name: string, email: string, role?: UserRole, specialization?: string) => boolean | Promise<boolean>;
   logout: () => void;
   switchUserRole: (role: UserRole) => void;
   switchUserById: (userId: string) => void;
