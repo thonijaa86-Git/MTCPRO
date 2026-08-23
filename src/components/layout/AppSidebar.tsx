@@ -142,33 +142,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
 
         {/* Navigation Menus List */}
         <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-1">
-          {/* Specific Role Highlight Sections */}
-          {role === 'teknisi' && (
-            <div className="mb-3 pb-3 border-b border-slate-800">
-              <div className="px-3 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                Fokus Teknisi
-              </div>
-              <button
-                onClick={() => handleNavClick('teknisi_tasks')}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                  currentView === 'teknisi_tasks'
-                    ? 'bg-blue-600 text-white font-semibold shadow-md shadow-blue-600/30'
-                    : 'text-blue-300 hover:bg-slate-800/80 bg-blue-950/30 border border-blue-800/30'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <Wrench className="w-4 h-4 text-blue-400 shrink-0" />
-                  <span>Tugas Saya (Eksekusi WO)</span>
-                </div>
-                {myTasksCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-amber-500 text-slate-950">
-                    {myTasksCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
           {role === 'supervisor' && (
             <div className="mb-3 pb-3 border-b border-slate-800">
               <div className="px-3 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
@@ -199,9 +172,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
             Menu Navigasi
           </div>
 
-          {/* Dynamic Accessible Menus (Numbered 01 - 08) */}
-          {accessibleMenus.map((menu) => {
+          {/* Dynamic Accessible Menus (Clean sequential numbering 01, 02, 03...) */}
+          {accessibleMenus.map((menu, idx) => {
             const isActive = currentView === menu.menuKey;
+            const displayNumber = (idx + 1).toString().padStart(2, '0');
             return (
               <button
                 key={menu.menuKey}
@@ -218,7 +192,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
                       isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-300'
                     }`}
                   >
-                    {menu.menuNumber}
+                    {displayNumber}
                   </span>
                   <div className={isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-300'}>
                     {getMenuIcon(menu.iconName)}

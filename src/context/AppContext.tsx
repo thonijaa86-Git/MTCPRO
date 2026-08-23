@@ -155,7 +155,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [menuPermissions, setMenuPermissions] = useState<MenuPermission[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.PERMISSIONS);
-    return saved ? JSON.parse(saved) : INITIAL_MENU_PERMISSIONS;
+    const base: MenuPermission[] = saved ? JSON.parse(saved) : INITIAL_MENU_PERMISSIONS;
+    // Enforce strictly 3 menus for teknisi: dashboard, work_orders, schedules
+    return base.map((m) => ({
+      ...m,
+      rolesAllowed: {
+        ...m.rolesAllowed,
+        teknisi: m.menuKey === 'dashboard' || m.menuKey === 'work_orders' || m.menuKey === 'schedules'
+      }
+    }));
   });
 
   const [assets, setAssets] = useState<Asset[]>(() => {
@@ -330,6 +338,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const matched = users.find((u) => u.role === role);
     if (matched) {
       setCurrentUser(matched);
+      if (role === 'teknisi' && currentView !== 'dashboard' && currentView !== 'work_orders' && currentView !== 'schedules') {
+        setCurrentView('dashboard');
+      }
       showToast('info', `Beralih Akun: ${matched.name}`, `Role aktif: ${role.toUpperCase()}`);
     }
   };
@@ -338,6 +349,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const matched = users.find((u) => u.id === userId);
     if (matched) {
       setCurrentUser(matched);
+      if (matched.role === 'teknisi' && currentView !== 'dashboard' && currentView !== 'work_orders' && currentView !== 'schedules') {
+        setCurrentView('dashboard');
+      }
       showToast('info', `Beralih Pengguna`, `Aktif sebagai ${matched.name} (${matched.role.toUpperCase()})`);
     }
   };

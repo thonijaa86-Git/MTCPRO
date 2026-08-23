@@ -99,7 +99,7 @@ export const INITIAL_MENU_PERMISSIONS: MenuPermission[] = [
     menuNumber: '02',
     description: 'Inventaris mesin & peralatan Mechanical, Electrical, dan Plumbing',
     rolesAllowed: {
-      teknisi: true,
+      teknisi: false,
       supervisor: true,
       manager: true
     }
@@ -135,7 +135,7 @@ export const INITIAL_MENU_PERMISSIONS: MenuPermission[] = [
     menuNumber: '05',
     description: 'Stok suku cadang MEP, ambang batas minimum, dan reorder point',
     rolesAllowed: {
-      teknisi: true, // Allowed for checking stock during maintenance
+      teknisi: false,
       supervisor: true,
       manager: false
     }
