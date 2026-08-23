@@ -95,6 +95,8 @@ export interface WorkOrder {
   createdById?: string;
   createdByName?: string;
   createdAt: string;
+  startDate?: string; // Mulai Tanggal
+  endDate?: string; // Selesai Tanggal
   dueDate?: string;
   completedAt?: string;
   approvedById?: string;

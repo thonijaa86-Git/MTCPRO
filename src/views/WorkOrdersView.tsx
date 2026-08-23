@@ -37,7 +37,8 @@ import {
   HardHat,
   X,
   FileText,
-  ShieldCheck
+  ShieldCheck,
+  CalendarRange
 } from 'lucide-react';
 
 export const WO_PRIORITY_OPTIONS: WOPriority[] = ['Emergency', 'High', 'Medium', 'Low'];
@@ -86,6 +87,7 @@ export const WorkOrdersView: React.FC = () => {
   // - Prioritas: Emergency, High, Medium, Low
   // - Kategori WO: Corrective, Preventive, Installation, Inspection, Operation, Supervise
   // - Jenis Pekerjaan: Mechanical, Electrical, Sipil, Others
+  // - Jadwal Pekerjaan: Mulai Tanggal & Selesai Tanggal (setelah Jenis Pekerjaan)
   // - Vendor Pelaksana
   // - Nama Pelaksana
   // - Nama Supervisor
@@ -100,6 +102,8 @@ export const WorkOrdersView: React.FC = () => {
     priority: 'Medium' as WOPriority,
     woCategory: 'Corrective' as WOCategory,
     jobType: 'Mechanical' as JobType,
+    startDate: new Date().toISOString().substring(0, 10),
+    endDate: new Date(Date.now() + 2 * 86400000).toISOString().substring(0, 10),
     vendorName: 'Internal Facilities Team',
     assignedToName: '',
     assignedToId: '',
@@ -143,12 +147,17 @@ export const WorkOrdersView: React.FC = () => {
     const defaultTech = technicians[0];
     const defaultSpv = supervisors.find((u) => u.role === 'supervisor') || supervisors[0];
 
+    const todayStr = new Date().toISOString().substring(0, 10);
+    const endStr = new Date(Date.now() + 2 * 86400000).toISOString().substring(0, 10);
+
     setFormWO({
       woNumber: generatedWONumber,
-      woDate: new Date().toISOString().substring(0, 10),
+      woDate: todayStr,
       priority: 'Medium',
       woCategory: 'Corrective',
       jobType: 'Mechanical',
+      startDate: todayStr,
+      endDate: endStr,
       vendorName: 'Internal Facilities Team',
       assignedToName: defaultTech ? defaultTech.name : 'Agus Santoso',
       assignedToId: defaultTech ? defaultTech.id : '',
@@ -253,6 +262,9 @@ export const WorkOrdersView: React.FC = () => {
       priority: formWO.priority,
       woCategory: formWO.woCategory,
       jobType: formWO.jobType,
+      startDate: formWO.startDate,
+      endDate: formWO.endDate,
+      dueDate: formWO.endDate,
       vendorName: formWO.vendorName,
       assignedToId: formWO.assignedToId,
       assignedToName: formWO.assignedToName,
@@ -263,7 +275,6 @@ export const WorkOrdersView: React.FC = () => {
       status: 'Open',
       createdById: currentUser?.id || 'admin',
       createdByName: currentUser?.name || 'Admin MTCPRO',
-      dueDate: new Date(Date.now() + 3 * 86400000).toISOString().substring(0, 10),
       estimatedHours: 4,
       stepsCompleted: [],
       sparePartsUsed: validMaterials.map((m) => ({
@@ -309,7 +320,7 @@ export const WorkOrdersView: React.FC = () => {
             <span>Manajemen Work Order (WO)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pelacakan instruksi kerja, penugasan teknisi & supervisor pengawas, alokasi material, dan dokumentasi foto lapangan
+            Pelacakan instruksi kerja, jadwal mulai & selesai pekerjaan, penugasan personil, alokasi material, dan dokumentasi foto
           </p>
         </div>
 
@@ -433,9 +444,10 @@ export const WorkOrdersView: React.FC = () => {
               <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="px-4 py-3">No. WO</th>
-                  <th className="px-4 py-3">Tanggal</th>
+                  <th className="px-4 py-3">Tanggal WO</th>
                   <th className="px-4 py-3">Nama Aset & Lokasi</th>
                   <th className="px-4 py-3">Kategori & Jenis</th>
+                  <th className="px-4 py-3">Jadwal Pekerjaan</th>
                   <th className="px-4 py-3">Prioritas</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Pelaksana</th>
@@ -448,7 +460,7 @@ export const WorkOrdersView: React.FC = () => {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredWOs.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="text-center py-12 text-slate-400">
+                    <td colSpan={12} className="text-center py-12 text-slate-400">
                       Tidak ada Work Order yang sesuai dengan filter.
                     </td>
                   </tr>
@@ -485,6 +497,15 @@ export const WorkOrdersView: React.FC = () => {
                           <span className="text-[10px] text-slate-500 font-medium">
                             {wo.jobType || 'Mechanical'}
                           </span>
+                        </div>
+                      </td>
+
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="text-[11px] font-mono text-slate-700 flex items-center gap-1">
+                          <CalendarRange className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span>{wo.startDate || wo.createdAt?.substring(0, 10) || '-'}</span>
+                          <span className="text-slate-400">s/d</span>
+                          <span>{wo.endDate || wo.dueDate || '-'}</span>
                         </div>
                       </td>
 
@@ -607,7 +628,7 @@ export const WorkOrdersView: React.FC = () => {
                           <span className="truncate max-w-[100px] font-medium">
                             {wo.assignedToName || 'Unassigned'}
                           </span>
-                          <span className="font-mono text-slate-400">{wo.woDate || (wo.createdAt ? wo.createdAt.substring(0, 10) : '')}</span>
+                          <span className="font-mono text-slate-400">{wo.endDate || wo.dueDate || (wo.createdAt ? wo.createdAt.substring(0, 10) : '')}</span>
                         </div>
                       </div>
                     ))
@@ -678,16 +699,19 @@ export const WorkOrdersView: React.FC = () => {
                 </p>
               </div>
               <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Jadwal Pekerjaan:</span>
+                <p className="font-semibold text-slate-800 text-xs mt-0.5 font-mono flex items-center gap-1">
+                  <CalendarRange className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{selectedWOForDetail.startDate || selectedWOForDetail.createdAt?.substring(0, 10)} s/d {selectedWOForDetail.endDate || selectedWOForDetail.dueDate || '-'}</span>
+                </p>
+              </div>
+              <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Vendor Pelaksana:</span>
                 <p className="font-semibold text-slate-800 text-xs mt-0.5">{selectedWOForDetail.vendorName || 'Internal Facilities Team'}</p>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Diterbitkan Oleh:</span>
                 <p className="font-semibold text-slate-800 text-xs mt-0.5">{selectedWOForDetail.createdByName || 'Admin'}</p>
-              </div>
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Tanggal WO:</span>
-                <p className="font-semibold text-slate-800 text-xs mt-0.5 font-mono">{selectedWOForDetail.woDate || (selectedWOForDetail.createdAt ? selectedWOForDetail.createdAt.substring(0, 10) : '-')}</p>
               </div>
             </div>
 
@@ -848,11 +872,11 @@ export const WorkOrdersView: React.FC = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         title="Terbitkan Work Order Baru"
-        subtitle="Formulir penerbitan tiket pemeliharaan, alokasi material & dokumentasi foto"
+        subtitle="Formulir penerbitan tiket pemeliharaan, jadwal pengerjaan & alokasi material"
         maxWidth="3xl"
       >
         <form onSubmit={handleSaveCreate} className="space-y-3 text-xs">
-          {/* BARIS 1: IDENTIFIKASI & PRIORITAS (3 Kolom) */}
+          {/* BARIS 1: IDENTIFIKASI DOKUMEN & PRIORITAS (3 Kolom) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             {/* 1. NO WO */}
             <div>
@@ -883,7 +907,7 @@ export const WorkOrdersView: React.FC = () => {
               />
             </div>
 
-            {/* 3. Prioritas (Emergency, High, Medium, Low) */}
+            {/* 3. Prioritas */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Prioritas <span className="text-rose-500">*</span>
@@ -902,8 +926,8 @@ export const WorkOrdersView: React.FC = () => {
             </div>
           </div>
 
-          {/* BARIS 2: KLASIFIKASI PEKERJAAN & VENDOR (3 Kolom) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+          {/* BARIS 2: KLASIFIKASI & JADWAL PEKERJAAN (4 Kolom Terintegrasi) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {/* 4. Kategori WO */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
@@ -940,7 +964,40 @@ export const WorkOrdersView: React.FC = () => {
               </select>
             </div>
 
-            {/* 6. Vendor Pelaksana */}
+            {/* 6. Jadwal Pekerjaan: Mulai Tanggal (Posisi Tepat Setelah Jenis Pekerjaan) */}
+            <div>
+              <label className="block text-[11px] font-semibold text-blue-700 mb-0.5 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-blue-600" />
+                <span>Mulai Tanggal <span className="text-rose-500">*</span></span>
+              </label>
+              <input
+                type="date"
+                required
+                value={formWO.startDate}
+                onChange={(e) => setFormWO({ ...formWO, startDate: e.target.value })}
+                className="w-full py-1.5 px-3 bg-blue-50/40 border border-blue-200 rounded-lg font-mono text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+              />
+            </div>
+
+            {/* 7. Jadwal Pekerjaan: Selesai Tanggal */}
+            <div>
+              <label className="block text-[11px] font-semibold text-blue-700 mb-0.5 flex items-center gap-1">
+                <Calendar className="w-3 h-3 text-blue-600" />
+                <span>Selesai Tanggal <span className="text-rose-500">*</span></span>
+              </label>
+              <input
+                type="date"
+                required
+                value={formWO.endDate}
+                onChange={(e) => setFormWO({ ...formWO, endDate: e.target.value })}
+                className="w-full py-1.5 px-3 bg-blue-50/40 border border-blue-200 rounded-lg font-mono text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
+              />
+            </div>
+          </div>
+
+          {/* BARIS 3: REKANAN VENDOR & TIM PENANGGUNG JAWAB (3 Kolom) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+            {/* 8. Vendor Pelaksana */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Vendor Pelaksana
@@ -958,11 +1015,8 @@ export const WorkOrdersView: React.FC = () => {
                 ))}
               </select>
             </div>
-          </div>
 
-          {/* BARIS 3: PERSONIL PELAKSANA & SUPERVISOR (2 Kolom Berdampingan) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-            {/* 7. Nama Pelaksana */}
+            {/* 9. Nama Pelaksana */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Nama Pelaksana (Teknisi)
@@ -988,7 +1042,7 @@ export const WorkOrdersView: React.FC = () => {
               </select>
             </div>
 
-            {/* 8. Nama Supervisor (Baru) */}
+            {/* 10. Nama Supervisor */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Nama Supervisor (Pengawas)
@@ -1015,9 +1069,9 @@ export const WorkOrdersView: React.FC = () => {
             </div>
           </div>
 
-          {/* BARIS 4: ASET & LOKASI DETAIL (2 Kolom Berdampingan) */}
+          {/* BARIS 4: OBJEK ASET & LOKASI DETAIL (2 Kolom Berdampingan) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
-            {/* 9. Nama Aset */}
+            {/* 11. Nama Aset */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Nama Aset <span className="text-rose-500">*</span>
@@ -1036,7 +1090,7 @@ export const WorkOrdersView: React.FC = () => {
               </select>
             </div>
 
-            {/* 10. Lokasi */}
+            {/* 12. Lokasi */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Lokasi <span className="text-rose-500">*</span>
