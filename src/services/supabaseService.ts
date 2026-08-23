@@ -344,6 +344,24 @@ export const supabaseService = {
     }
   },
 
+  async deleteWorkOrder(id: string) {
+    if (!isSupabaseConfigured()) return;
+    try {
+      await supabase.from('work_orders').delete().eq('id', id);
+    } catch (err) {
+      console.error('Exception deleting work order from Supabase:', err);
+    }
+  },
+
+  async deleteBulkWorkOrders(ids: string[]) {
+    if (!isSupabaseConfigured() || ids.length === 0) return;
+    try {
+      await supabase.from('work_orders').delete().in('id', ids);
+    } catch (err) {
+      console.error('Exception bulk deleting work orders:', err);
+    }
+  },
+
   // ==========================================
   // MAINTENANCE SCHEDULES
   // ==========================================
@@ -427,6 +445,43 @@ export const supabaseService = {
     }
   },
 
+  async updateSchedule(id: string, updates: Partial<MaintenanceSchedule>) {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const payload: any = {};
+      if (updates.title !== undefined) payload.title = updates.title;
+      if (updates.status !== undefined) payload.status = updates.status;
+      if (updates.nextDueDate !== undefined) payload.next_due_date = updates.nextDueDate;
+      if (updates.frequency !== undefined) payload.frequency = updates.frequency;
+      if (updates.assignedToName !== undefined) payload.assigned_to_name = updates.assignedToName;
+      if (updates.vendorName !== undefined) payload.vendor_name = updates.vendorName;
+      if (updates.checklistItems !== undefined) payload.checklist_items = updates.checklistItems;
+      if (updates.estimatedDuration !== undefined) payload.estimated_duration = updates.estimatedDuration;
+
+      await supabase.from('maintenance_schedules').update(payload).eq('id', id);
+    } catch (err) {
+      console.error('Exception updating schedule in Supabase:', err);
+    }
+  },
+
+  async deleteSchedule(id: string) {
+    if (!isSupabaseConfigured()) return;
+    try {
+      await supabase.from('maintenance_schedules').delete().eq('id', id);
+    } catch (err) {
+      console.error('Exception deleting schedule from Supabase:', err);
+    }
+  },
+
+  async deleteBulkSchedules(ids: string[]) {
+    if (!isSupabaseConfigured() || ids.length === 0) return;
+    try {
+      await supabase.from('maintenance_schedules').delete().in('id', ids);
+    } catch (err) {
+      console.error('Exception bulk deleting schedules:', err);
+    }
+  },
+
   // ==========================================
   // SPARE PARTS
   // ==========================================
@@ -499,6 +554,45 @@ export const supabaseService = {
     }
   },
 
+  async updateSparePart(id: string, updates: Partial<SparePart>) {
+    if (!isSupabaseConfigured()) return;
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.sku !== undefined) payload.sku = updates.sku;
+      if (updates.category !== undefined) payload.category = updates.category;
+      if (updates.stock !== undefined) payload.stock = updates.stock;
+      if (updates.minThreshold !== undefined) payload.min_threshold = updates.minThreshold;
+      if (updates.unit !== undefined) payload.unit = updates.unit;
+      if (updates.unitCost !== undefined) payload.unit_cost = updates.unitCost;
+      if (updates.locationRack !== undefined) payload.location_rack = updates.locationRack;
+      if (updates.supplier !== undefined) payload.supplier = updates.supplier;
+      if (updates.compatibleAssets !== undefined) payload.compatible_assets = updates.compatibleAssets;
+
+      await supabase.from('spare_parts').update(payload).eq('id', id);
+    } catch (err) {
+      console.error('Exception updating spare part:', err);
+    }
+  },
+
+  async deleteSparePart(id: string) {
+    if (!isSupabaseConfigured()) return;
+    try {
+      await supabase.from('spare_parts').delete().eq('id', id);
+    } catch (err) {
+      console.error('Exception deleting spare part:', err);
+    }
+  },
+
+  async deleteBulkSpareParts(ids: string[]) {
+    if (!isSupabaseConfigured() || ids.length === 0) return;
+    try {
+      await supabase.from('spare_parts').delete().in('id', ids);
+    } catch (err) {
+      console.error('Exception bulk deleting spare parts:', err);
+    }
+  },
+
   async updateSparePartStock(id: string, newStock: number) {
     if (!isSupabaseConfigured()) return;
     try {
@@ -508,6 +602,24 @@ export const supabaseService = {
       }).eq('id', id);
     } catch (err) {
       console.error('Exception updating spare part stock:', err);
+    }
+  },
+
+  async deleteBulkAssets(ids: string[]) {
+    if (!isSupabaseConfigured() || ids.length === 0) return;
+    try {
+      await supabase.from('assets').delete().in('id', ids);
+    } catch (err) {
+      console.error('Exception bulk deleting assets:', err);
+    }
+  },
+
+  async deleteBulkVendors(ids: string[]) {
+    if (!isSupabaseConfigured() || ids.length === 0) return;
+    try {
+      await supabase.from('vendors').delete().in('id', ids);
+    } catch (err) {
+      console.error('Exception bulk deleting vendors:', err);
     }
   },
 

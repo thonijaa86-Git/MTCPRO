@@ -15,22 +15,31 @@ import {
   Edit2,
   Trash2,
   Layers,
-  Wrench
+  Wrench,
+  Eye,
+  ListFilter,
+  LayoutGrid,
+  X
 } from 'lucide-react';
 
 export const VendorsView: React.FC = () => {
-  const { currentUser, vendors, addVendor, updateVendor, deleteVendor } = useApp();
+  const { currentUser, vendors, addVendor, updateVendor, deleteVendor, deleteBulkVendors } = useApp();
 
   const role = currentUser?.role || 'teknisi';
   const canManage = role === 'admin' || role === 'supervisor';
 
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+
+  // Multi-Select
+  const [selectedVendorIds, setSelectedVendorIds] = useState<string[]>([]);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingVendor, setEditingVendor] = useState<Vendor | null>(null);
+  const [selectedVendorForDetail, setSelectedVendorForDetail] = useState<Vendor | null>(null);
 
   // Form State
   const [formVendor, setFormVendor] = useState({
@@ -57,6 +66,38 @@ export const VendorsView: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
+  // Multi-Select Handlers
+  const handleSelectAll = () => {
+    if (selectedVendorIds.length === filteredVendors.length && filteredVendors.length > 0) {
+      setSelectedVendorIds([]);
+    } else {
+      setSelectedVendorIds(filteredVendors.map((v) => v.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedVendorIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedVendorIds.length === 0) return;
+    if (window.confirm(`Apakah Anda yakin ingin menghapus ${selectedVendorIds.length} vendor terpilih?`)) {
+      deleteBulkVendors(selectedVendorIds);
+      setSelectedVendorIds([]);
+    }
+  };
+
+  const handleDeleteSingle = (v: Vendor, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm(`Hapus vendor ${v.name}?`)) {
+      deleteVendor(v.id);
+      setSelectedVendorIds((prev) => prev.filter((id) => id !== v.id));
+    }
+  };
+
   const handleOpenAdd = () => {
     setFormVendor({
       name: '',
@@ -72,7 +113,8 @@ export const VendorsView: React.FC = () => {
     setIsAddModalOpen(true);
   };
 
-  const handleOpenEdit = (v: Vendor) => {
+  const handleOpenEdit = (v: Vendor, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     setEditingVendor(v);
     setFormVendor({
       name: v.name,
@@ -142,16 +184,74 @@ export const VendorsView: React.FC = () => {
           </p>
         </div>
 
-        {canManage && (
-          <button
-            onClick={handleOpenAdd}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Tambah Vendor Baru</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2.5">
+          {/* View Toggle */}
+          <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 border border-slate-200">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <ListFilter className="w-3.5 h-3.5" />
+              <span>Tabel</span>
+            </button>
+            <button
+              onClick={() => setViewMode('cards')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                viewMode === 'cards'
+                  ? 'bg-white text-slate-900 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span>Kartu</span>
+            </button>
+          </div>
+
+          {canManage && (
+            <button
+              onClick={handleOpenAdd}
+              className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Tambah Vendor Baru</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Bulk Action Banner */}
+      {selectedVendorIds.length > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300">
+              {selectedVendorIds.length}
+            </span>
+            <span className="font-semibold">Vendor terpilih</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedVendorIds([])}
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium cursor-pointer transition-colors"
+            >
+              Batal Pilihan
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus {selectedVendorIds.length} Vendor Terpilih</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filter Bar */}
       <div className="industrial-panel p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white">
@@ -177,112 +277,353 @@ export const VendorsView: React.FC = () => {
             <option value="Review">Dalam Review</option>
             <option value="Expired">Expired</option>
           </select>
+          {(searchQuery || selectedStatus !== 'ALL') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedStatus('ALL');
+              }}
+              className="p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors"
+              title="Reset Filter"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Vendor Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {filteredVendors.map((v) => (
-          <div
-            key={v.id}
-            className="industrial-panel p-5 flex flex-col justify-between hover:shadow-md transition-all space-y-4 relative"
-          >
-            <div>
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">
-                    <Building2 className="w-5 h-5" />
+      {/* Content: Table View or Cards View */}
+      {viewMode === 'table' ? (
+        <div className="industrial-panel overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+                <tr>
+                  <th className="px-3 py-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedVendorIds.length > 0 && selectedVendorIds.length === filteredVendors.length}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                      title="Pilih Semua Vendor"
+                    />
+                  </th>
+                  <th className="px-4 py-3">Nama Perusahaan</th>
+                  <th className="px-4 py-3">Contact Person (PIC)</th>
+                  <th className="px-4 py-3">Telepon & Email</th>
+                  <th className="px-4 py-3">Spesialisasi</th>
+                  <th className="px-4 py-3 text-center">Rating</th>
+                  <th className="px-4 py-3">Status Kontrak</th>
+                  <th className="px-4 py-3">Masa Berlaku</th>
+                  <th className="px-4 py-3 text-right">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 font-medium">
+                {filteredVendors.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="text-center py-12 text-slate-400">
+                      Tidak ada vendor yang cocok dengan kriteria pencarian.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredVendors.map((v) => {
+                    const isSelected = selectedVendorIds.includes(v.id);
+                    return (
+                      <tr
+                        key={v.id}
+                        onClick={() => setSelectedVendorForDetail(v)}
+                        className={`hover:bg-slate-50/80 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50/40' : ''
+                        }`}
+                      >
+                        <td className="px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleToggleSelect(v.id, e as any)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                          />
+                        </td>
+
+                        <td className="px-4 py-3.5 max-w-[200px]">
+                          <div className="font-bold text-slate-900 truncate">{v.name}</div>
+                          <div className="text-[11px] text-slate-500 truncate">{v.address}</div>
+                        </td>
+
+                        <td className="px-4 py-3.5 font-semibold text-slate-800 whitespace-nowrap">
+                          {v.contactPerson}
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="font-mono text-slate-700">{v.phone}</div>
+                          <div className="text-[11px] font-mono text-slate-400 truncate max-w-[140px]">{v.email}</div>
+                        </td>
+
+                        <td className="px-4 py-3.5 max-w-[180px]">
+                          <div className="flex flex-wrap gap-1">
+                            {v.specialization.slice(0, 2).map((s, sIdx) => (
+                              <span key={sIdx} className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700">
+                                {s}
+                              </span>
+                            ))}
+                            {v.specialization.length > 2 && (
+                              <span className="text-[10px] text-slate-400">+{v.specialization.length - 2}</span>
+                            )}
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 font-bold font-mono text-amber-600 text-xs">
+                            <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                            {v.rating}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <span
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                              v.contractStatus === 'Aktif'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : v.contractStatus === 'Review'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                            }`}
+                          >
+                            {v.contractStatus}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5 font-mono text-slate-600 whitespace-nowrap">
+                          {v.contractExpiry}
+                        </td>
+
+                        {/* Action Column */}
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setSelectedVendorForDetail(v)}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              title="Lihat Detail"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            {canManage && (
+                              <>
+                                <button
+                                  onClick={(e) => handleOpenEdit(v, e)}
+                                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Vendor"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteSingle(v, e)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Hapus Vendor"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* Cards View */
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filteredVendors.map((v) => {
+            const isSelected = selectedVendorIds.includes(v.id);
+            return (
+              <div
+                key={v.id}
+                onClick={() => setSelectedVendorForDetail(v)}
+                className={`industrial-panel p-5 flex flex-col justify-between hover:shadow-md transition-all space-y-4 relative cursor-pointer ${
+                  isSelected ? 'ring-2 ring-blue-500 bg-blue-50/20' : ''
+                }`}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={(e) => handleToggleSelect(v.id, e as any)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 text-blue-600 rounded cursor-pointer"
+                      />
+                      <div className="p-2 rounded-lg bg-purple-50 text-purple-600 border border-purple-100">
+                        <Building2 className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{v.name}</h3>
+                        <p className="text-[11px] text-slate-500 font-medium">PIC: {v.contactPerson}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <span
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                          v.contractStatus === 'Aktif'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : v.contractStatus === 'Review'
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-rose-50 text-rose-700 border-rose-200'
+                        }`}
+                      >
+                        {v.contractStatus}
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{v.name}</h3>
-                    <p className="text-[11px] text-slate-500 font-medium">PIC: {v.contactPerson}</p>
+
+                  {/* Specialization Tags */}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {v.specialization.map((spec, idx) => (
+                      <span
+                        key={idx}
+                        className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200"
+                      >
+                        {spec}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Contact info & address */}
+                  <div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span className="flex items-center gap-1.5 text-slate-500">
+                        <Phone className="w-3.5 h-3.5 text-slate-400" />
+                        <span>{v.phone}</span>
+                      </span>
+                      <span className="flex items-center gap-1 text-amber-600 font-bold font-mono">
+                        <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                        <span>{v.rating} / 5.0</span>
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <Mail className="w-3.5 h-3.5 text-slate-400" />
+                      <span className="font-mono text-[11px]">{v.email}</span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-slate-500">
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <span className="truncate">{v.address}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  <span
-                    className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
-                      v.contractStatus === 'Aktif'
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : v.contractStatus === 'Review'
-                        ? 'bg-amber-50 text-amber-700 border-amber-200'
-                        : 'bg-rose-50 text-rose-700 border-rose-200'
-                    }`}
-                  >
-                    {v.contractStatus}
+                {/* Footer */}
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs" onClick={(e) => e.stopPropagation()}>
+                  <span className="text-[11px] text-slate-400 font-mono">
+                    Berlaku s.d: {v.contractExpiry}
                   </span>
+
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setSelectedVendorForDetail(v)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                      title="Lihat Detail"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                    {canManage && (
+                      <>
+                        <button
+                          onClick={(e) => handleOpenEdit(v, e)}
+                          className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                          title="Edit Vendor"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteSingle(v, e)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                          title="Hapus Vendor"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
+            );
+          })}
+        </div>
+      )}
 
-              {/* Specialization Tags */}
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {v.specialization.map((spec, idx) => (
-                  <span
-                    key={idx}
-                    className="text-[10px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-medium border border-slate-200"
-                  >
-                    {spec}
-                  </span>
-                ))}
+      {/* Detail Modal */}
+      {selectedVendorForDetail && (
+        <Modal
+          isOpen={!!selectedVendorForDetail}
+          onClose={() => setSelectedVendorForDetail(null)}
+          title={selectedVendorForDetail.name}
+          subtitle={`PIC: ${selectedVendorForDetail.contactPerson} • Status: ${selectedVendorForDetail.contractStatus}`}
+          maxWidth="lg"
+        >
+          <div className="space-y-4 text-xs">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Status Kontrak</span>
+                <p className="font-bold text-emerald-700 text-xs mt-0.5">{selectedVendorForDetail.contractStatus}</p>
               </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Rating Vendor</span>
+                <p className="font-bold text-amber-600 text-xs mt-0.5 flex items-center gap-1 font-mono">
+                  <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <span>{selectedVendorForDetail.rating} / 5.0</span>
+                </p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Masa Berlaku</span>
+                <p className="font-mono text-slate-800 text-xs mt-0.5">{selectedVendorForDetail.contractExpiry}</p>
+              </div>
+            </div>
 
-              {/* Contact info & address */}
-              <div className="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <Phone className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{v.phone}</span>
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-600 font-bold font-mono">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                    <span>{v.rating} / 5.0</span>
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-slate-500">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="font-mono text-[11px]">{v.email}</span>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-slate-500">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="truncate">{v.address}</span>
+            <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2">
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Kontak Telepon:</span>
+                <span className="font-mono font-bold text-slate-900">{selectedVendorForDetail.phone}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Email:</span>
+                <span className="font-mono text-slate-800">{selectedVendorForDetail.email}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500 font-medium">Alamat Kantor:</span>
+                <span className="text-slate-800 text-right max-w-[200px]">{selectedVendorForDetail.address}</span>
+              </div>
+              <div>
+                <span className="text-slate-500 font-medium block mb-1">Bidang Spesialisasi:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedVendorForDetail.specialization.map((s, idx) => (
+                    <span key={idx} className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[11px] font-medium">
+                      {s}
+                    </span>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="text-[11px] text-slate-400 font-mono">
-                Berlaku s.d: {v.contractExpiry}
-              </span>
-
-              {canManage && (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => handleOpenEdit(v)}
-                    className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                    title="Edit Vendor"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => {
-                      if (confirm(`Hapus vendor ${v.name}?`)) {
-                        deleteVendor(v.id);
-                      }
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                    title="Hapus Vendor"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
+            <div className="flex justify-end pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setSelectedVendorForDetail(null)}
+                className="px-4 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
+              >
+                Tutup
+              </button>
             </div>
           </div>
-        ))}
-      </div>
+        </Modal>
+      )}
 
       {/* Add / Edit Vendor Modal */}
       <Modal

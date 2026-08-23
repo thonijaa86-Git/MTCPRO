@@ -71,9 +71,13 @@ interface AppContextType {
   addAsset: (asset: Omit<Asset, 'id'>) => void;
   updateAsset: (id: string, updates: Partial<Asset>) => void;
   deleteAsset: (id: string) => void;
+  deleteBulkAssets: (ids: string[]) => void;
   
   // Work Order Actions
   createWorkOrder: (wo: Omit<WorkOrder, 'id' | 'createdAt'> & { id?: string; woNumber?: string; createdAt?: string }) => void;
+  updateWorkOrder: (id: string, updates: Partial<WorkOrder>) => void;
+  deleteWorkOrder: (id: string) => void;
+  deleteBulkWorkOrders: (ids: string[]) => void;
   updateWorkOrderStatus: (id: string, status: WOStatus, notes?: string) => void;
   updateWorkOrderPriority: (id: string, priority: WOPriority) => void;
   assignWorkOrder: (id: string, technicianId: string) => void;
@@ -87,6 +91,9 @@ interface AppContextType {
   
   // Schedule Actions
   addSchedule: (schedule: Omit<MaintenanceSchedule, 'id' | 'scheduleCode'>) => void;
+  updateSchedule: (id: string, updates: Partial<MaintenanceSchedule>) => void;
+  deleteSchedule: (id: string) => void;
+  deleteBulkSchedules: (ids: string[]) => void;
   toggleScheduleStatus: (id: string) => void;
   generateWOFromSchedule: (scheduleId: string) => void;
   
@@ -94,6 +101,8 @@ interface AppContextType {
   restockSparePart: (id: string, quantityToAdd: number) => void;
   addSparePart: (part: Omit<SparePart, 'id'>) => void;
   updateSparePart: (id: string, updates: Partial<SparePart>) => void;
+  deleteSparePart: (id: string) => void;
+  deleteBulkSpareParts: (ids: string[]) => void;
   
   // Team Actions
   updateUserRole: (userId: string, newRole: UserRole) => void;
@@ -103,6 +112,7 @@ interface AppContextType {
   addVendor: (vendor: Omit<Vendor, 'id'>) => void;
   updateVendor: (id: string, updates: Partial<Vendor>) => void;
   deleteVendor: (id: string) => void;
+  deleteBulkVendors: (ids: string[]) => void;
   
   // Notification Actions
   markNotificationAsRead: (id: string) => void;
@@ -399,6 +409,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addLog('Hapus Aset', 'asset', id, `Menghapus aset: ${target?.name}`);
   };
 
+  const deleteBulkAssets = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setAssets((prev) => prev.filter((a) => !ids.includes(a.id)));
+    supabaseService.deleteBulkAssets(ids);
+    showToast('info', 'Aset Terpilih Dihapus', `${ids.length} aset berhasil dihapus.`);
+    addLog('Hapus Massal Aset', 'asset', ids[0], `Menghapus ${ids.length} aset sekaligus`);
+  };
+
   // Work Order Actions
   const createWorkOrder = (woData: Omit<WorkOrder, 'id' | 'createdAt'> & { id?: string; woNumber?: string; createdAt?: string }) => {
     const count = workOrders.length + 1;
@@ -425,6 +443,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     showToast('success', 'Work Order Diterbitkan', `${newWO.woNumber}: ${newWO.title || newWO.assetName}`);
     addLog('Buat Work Order', 'work_order', id, `Menerbitkan ${newWO.woNumber} [${newWO.priority}] untuk aset ${newWO.assetName}`);
+  };
+
+  const updateWorkOrder = (id: string, updates: Partial<WorkOrder>) => {
+    setWorkOrders((prev) =>
+      prev.map((wo) => (wo.id === id ? { ...wo, ...updates } : wo))
+    );
+    supabaseService.updateWorkOrder(id, updates);
+    showToast('success', 'Work Order Diperbarui', `Perubahan WO ID ${id} berhasil disimpan.`);
+    addLog('Edit Work Order', 'work_order', id, `Memperbarui data Work Order ID ${id}`);
+  };
+
+  const deleteWorkOrder = (id: string) => {
+    const target = workOrders.find((w) => w.id === id);
+    setWorkOrders((prev) => prev.filter((w) => w.id !== id));
+    supabaseService.deleteWorkOrder(id);
+    showToast('info', 'Work Order Dihapus', `${target?.woNumber || id} telah dihapus.`);
+    addLog('Hapus Work Order', 'work_order', id, `Menghapus WO: ${target?.woNumber}`);
+  };
+
+  const deleteBulkWorkOrders = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setWorkOrders((prev) => prev.filter((w) => !ids.includes(w.id)));
+    supabaseService.deleteBulkWorkOrders(ids);
+    showToast('info', 'Work Order Terpilih Dihapus', `${ids.length} Work Order berhasil dihapus.`);
+    addLog('Hapus Massal WO', 'work_order', ids[0], `Menghapus ${ids.length} Work Order sekaligus`);
   };
 
   const updateWorkOrderStatus = (id: string, status: WOStatus, notes?: string) => {
@@ -662,6 +705,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addLog('Generate WO dari Jadwal', 'work_order', id, `Otomatisasi pembuatan WO ${woNumber} dari jadwal preventif ${sch.scheduleCode}`);
   };
 
+  const updateSchedule = (id: string, updates: Partial<MaintenanceSchedule>) => {
+    setSchedules((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, ...updates } : s))
+    );
+    supabaseService.updateSchedule(id, updates);
+    showToast('success', 'Jadwal Diperbarui', `Perubahan jadwal berhasil disimpan.`);
+  };
+
+  const deleteSchedule = (id: string) => {
+    const target = schedules.find((s) => s.id === id);
+    setSchedules((prev) => prev.filter((s) => s.id !== id));
+    supabaseService.deleteSchedule(id);
+    showToast('info', 'Jadwal Dihapus', `${target?.scheduleCode || id} telah dihapus.`);
+  };
+
+  const deleteBulkSchedules = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setSchedules((prev) => prev.filter((s) => !ids.includes(s.id)));
+    supabaseService.deleteBulkSchedules(ids);
+    showToast('info', 'Jadwal Terpilih Dihapus', `${ids.length} jadwal berhasil dihapus.`);
+  };
+
   // Spare Part Actions
   const restockSparePart = (id: string, quantityToAdd: number) => {
     let updatedStock = 0;
@@ -703,7 +768,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSpareParts((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...updates } : p))
     );
+    supabaseService.updateSparePart(id, updates);
     showToast('info', 'Data Spare Part Diperbarui', 'Perubahan berhasil disimpan.');
+  };
+
+  const deleteSparePart = (id: string) => {
+    const target = spareParts.find((p) => p.id === id);
+    setSpareParts((prev) => prev.filter((p) => p.id !== id));
+    supabaseService.deleteSparePart(id);
+    showToast('info', 'Spare Part Dihapus', `${target?.name || id} telah dihapus.`);
+  };
+
+  const deleteBulkSpareParts = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setSpareParts((prev) => prev.filter((p) => !ids.includes(p.id)));
+    supabaseService.deleteBulkSpareParts(ids);
+    showToast('info', 'Spare Part Terpilih Dihapus', `${ids.length} spare part berhasil dihapus.`);
   };
 
   // Team Actions
@@ -773,6 +853,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('info', 'Vendor Dihapus', `${target?.name || id} telah dihapus.`);
   };
 
+  const deleteBulkVendors = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setVendors((prev) => prev.filter((v) => !ids.includes(v.id)));
+    supabaseService.deleteBulkVendors(ids);
+    showToast('info', 'Vendor Terpilih Dihapus', `${ids.length} vendor berhasil dihapus.`);
+  };
+
   // Notifications
   const markNotificationAsRead = (id: string) => {
     setNotifications((prev) =>
@@ -832,23 +919,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addAsset,
         updateAsset,
         deleteAsset,
+        deleteBulkAssets,
         createWorkOrder,
+        updateWorkOrder,
+        deleteWorkOrder,
+        deleteBulkWorkOrders,
         updateWorkOrderStatus,
         updateWorkOrderPriority,
         assignWorkOrder,
         completeWorkOrderByTechnician,
         approveWorkOrderBySupervisor,
         addSchedule,
+        updateSchedule,
+        deleteSchedule,
+        deleteBulkSchedules,
         toggleScheduleStatus,
         generateWOFromSchedule,
         restockSparePart,
         addSparePart,
         updateSparePart,
+        deleteSparePart,
+        deleteBulkSpareParts,
         updateUserRole,
         addUser,
         addVendor,
         updateVendor,
         deleteVendor,
+        deleteBulkVendors,
         markNotificationAsRead,
         markAllNotificationsAsRead,
         resetAllData

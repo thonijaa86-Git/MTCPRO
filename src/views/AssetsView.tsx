@@ -45,6 +45,7 @@ export const AssetsView: React.FC = () => {
     addAsset,
     updateAsset,
     deleteAsset,
+    deleteBulkAssets,
     selectedAssetForDetail,
     setSelectedAssetForDetail,
     setCurrentView
@@ -57,6 +58,9 @@ export const AssetsView: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
+
+  // Multi-Select state
+  const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   // Modals
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -100,6 +104,30 @@ export const AssetsView: React.FC = () => {
 
     return matchesSearch && matchesCategory && matchesStatus;
   });
+
+  // Multi-Select Handlers
+  const handleSelectAll = () => {
+    if (selectedAssetIds.length === filteredAssets.length && filteredAssets.length > 0) {
+      setSelectedAssetIds([]);
+    } else {
+      setSelectedAssetIds(filteredAssets.map((a) => a.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedAssetIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedAssetIds.length === 0) return;
+    if (window.confirm(`Apakah Anda yakin ingin menghapus ${selectedAssetIds.length} aset terpilih?`)) {
+      deleteBulkAssets(selectedAssetIds);
+      setSelectedAssetIds([]);
+    }
+  };
 
   const handleOpenAdd = () => {
     const count = assets.length + 1;
@@ -203,6 +231,36 @@ export const AssetsView: React.FC = () => {
         )}
       </div>
 
+      {/* Bulk Action Banner */}
+      {selectedAssetIds.length > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300">
+              {selectedAssetIds.length}
+            </span>
+            <span className="font-semibold">Aset terpilih</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedAssetIds([])}
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium cursor-pointer transition-colors"
+            >
+              Batal Pilihan
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus {selectedAssetIds.length} Aset Terpilih</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filter & Search Bar */}
       <div className="industrial-panel p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white">
         {/* Search */}
@@ -268,6 +326,15 @@ export const AssetsView: React.FC = () => {
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
               <tr>
+                <th className="px-3 py-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={selectedAssetIds.length > 0 && selectedAssetIds.length === filteredAssets.length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                    title="Pilih Semua Aset"
+                  />
+                </th>
                 <th className="px-4 py-3">NO Aset</th>
                 <th className="px-4 py-3">Nama Aset</th>
                 <th className="px-4 py-3">Kategori</th>
@@ -282,106 +349,122 @@ export const AssetsView: React.FC = () => {
             <tbody className="divide-y divide-slate-100 font-medium">
               {filteredAssets.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-slate-400">
+                  <td colSpan={10} className="text-center py-12 text-slate-400">
                     Tidak ada aset yang cocok dengan kriteria pencarian.
                   </td>
                 </tr>
               ) : (
-                filteredAssets.map((asset) => (
-                  <tr
-                    key={asset.id}
-                    onClick={() => setSelectedAssetForDetail(asset)}
-                    className="hover:bg-slate-50/80 cursor-pointer transition-colors"
-                  >
-                    {/* NO Aset */}
-                    <td className="px-4 py-3.5 font-mono font-bold text-slate-900 whitespace-nowrap">
-                      <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200 text-slate-900 shadow-2xs">
-                        {asset.assetTag}
-                      </span>
-                    </td>
+                filteredAssets.map((asset) => {
+                  const isSelected = selectedAssetIds.includes(asset.id);
+                  return (
+                    <tr
+                      key={asset.id}
+                      onClick={() => setSelectedAssetForDetail(asset)}
+                      className={`hover:bg-slate-50/80 cursor-pointer transition-colors ${
+                        isSelected ? 'bg-blue-50/40' : ''
+                      }`}
+                    >
+                      {/* Checkbox */}
+                      <td className="px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => handleToggleSelect(asset.id, e as any)}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
 
-                    {/* Nama Aset */}
-                    <td className="px-4 py-3.5 max-w-[200px]">
-                      <div className="font-bold text-slate-900 truncate">{asset.name}</div>
-                      {asset.manufacturer && (
-                        <div className="text-[11px] text-slate-500 truncate">
-                          {asset.manufacturer} {asset.model && `• ${asset.model}`}
-                        </div>
-                      )}
-                    </td>
+                      {/* NO Aset */}
+                      <td className="px-4 py-3.5 font-mono font-bold text-slate-900 whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded bg-slate-100 border border-slate-200 text-slate-900 shadow-2xs">
+                          {asset.assetTag}
+                        </span>
+                      </td>
 
-                    {/* Kategori */}
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <CategoryBadge category={asset.category} />
-                    </td>
-
-                    {/* Lokasi */}
-                    <td className="px-4 py-3.5 text-slate-700 whitespace-nowrap">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <span className="truncate max-w-[140px]">{asset.location}</span>
-                      </div>
-                    </td>
-
-                    {/* Spesifikasi */}
-                    <td className="px-4 py-3.5 text-slate-600 max-w-[220px]">
-                      <div className="truncate text-xs font-mono">
-                        {asset.specification || asset.notes || (asset.capacity ? `${asset.capacity} • ${asset.powerRating || ''}` : '-')}
-                      </div>
-                    </td>
-
-                    {/* Tahun Pembuatan */}
-                    <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
-                      {asset.manufactureYear || (asset.installDate ? asset.installDate.substring(0, 4) : '-')}
-                    </td>
-
-                    {/* Tahun Instalasi */}
-                    <td className="px-4 py-3.5 text-center font-mono font-bold text-blue-700 whitespace-nowrap">
-                      {asset.installYear || (asset.installDate ? asset.installDate.substring(0, 4) : '-')}
-                    </td>
-
-                    {/* Status */}
-                    <td className="px-4 py-3.5 whitespace-nowrap">
-                      <StatusBadge status={asset.status} />
-                    </td>
-
-                    {/* Aksi */}
-                    <td className="px-4 py-3.5 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          onClick={() => setSelectedAssetForDetail(asset)}
-                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                          title="Detail Aset & QR Tag"
-                        >
-                          <QrCode className="w-4 h-4" />
-                        </button>
-                        {canManage && (
-                          <>
-                            <button
-                              onClick={(e) => handleOpenEdit(asset, e)}
-                              className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                              title="Edit Aset"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (confirm(`Yakin ingin menghapus aset ${asset.name} [${asset.assetTag}]?`)) {
-                                  deleteAsset(asset.id);
-                                }
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                              title="Hapus Aset"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
+                      {/* Nama Aset */}
+                      <td className="px-4 py-3.5 max-w-[200px]">
+                        <div className="font-bold text-slate-900 truncate">{asset.name}</div>
+                        {asset.manufacturer && (
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {asset.manufacturer} {asset.model && `• ${asset.model}`}
+                          </div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+
+                      {/* Kategori */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <CategoryBadge category={asset.category} />
+                      </td>
+
+                      {/* Lokasi */}
+                      <td className="px-4 py-3.5 text-slate-700 whitespace-nowrap">
+                        <div className="flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                          <span className="truncate max-w-[140px]">{asset.location}</span>
+                        </div>
+                      </td>
+
+                      {/* Spesifikasi */}
+                      <td className="px-4 py-3.5 text-slate-600 max-w-[220px]">
+                        <div className="truncate text-xs font-mono">
+                          {asset.specification || asset.notes || (asset.capacity ? `${asset.capacity} • ${asset.powerRating || ''}` : '-')}
+                        </div>
+                      </td>
+
+                      {/* Tahun Pembuatan */}
+                      <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
+                        {asset.manufactureYear || (asset.installDate ? asset.installDate.substring(0, 4) : '-')}
+                      </td>
+
+                      {/* Tahun Instalasi */}
+                      <td className="px-4 py-3.5 text-center font-mono font-bold text-blue-700 whitespace-nowrap">
+                        {asset.installYear || (asset.installDate ? asset.installDate.substring(0, 4) : '-')}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <StatusBadge status={asset.status} />
+                      </td>
+
+                      {/* Aksi: Lihat, Edit, Delete */}
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => setSelectedAssetForDetail(asset)}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                            title="Lihat Detail & QR Tag"
+                          >
+                            <QrCode className="w-4 h-4" />
+                          </button>
+                          {canManage && (
+                            <>
+                              <button
+                                onClick={(e) => handleOpenEdit(asset, e)}
+                                className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                title="Edit Data Aset"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (confirm(`Yakin ingin menghapus aset ${asset.name} [${asset.assetTag}]?`)) {
+                                    deleteAsset(asset.id);
+                                    setSelectedAssetIds((prev) => prev.filter((id) => id !== asset.id));
+                                  }
+                                }}
+                                className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                title="Hapus Aset"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

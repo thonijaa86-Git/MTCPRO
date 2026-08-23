@@ -38,7 +38,11 @@ import {
   X,
   FileText,
   ShieldCheck,
-  CalendarRange
+  CalendarRange,
+  Eye,
+  Edit2,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 
 export const WO_PRIORITY_OPTIONS: WOPriority[] = ['Emergency', 'High', 'Medium', 'Low'];
@@ -53,6 +57,9 @@ export const WorkOrdersView: React.FC = () => {
     users,
     vendors,
     createWorkOrder,
+    updateWorkOrder,
+    deleteWorkOrder,
+    deleteBulkWorkOrders,
     updateWorkOrderStatus,
     updateWorkOrderPriority,
     assignWorkOrder,
@@ -71,8 +78,14 @@ export const WorkOrdersView: React.FC = () => {
   const [selectedPriority, setSelectedPriority] = useState<string>('ALL');
   const [selectedStatus, setSelectedStatus] = useState<string>('ALL');
 
+  // Multi-select state
+  const [selectedWOIds, setSelectedWOIds] = useState<string[]>([]);
+
   // Modals
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingWOId, setEditingWOId] = useState<string | null>(null);
+
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [targetWOForAssign, setTargetWOForAssign] = useState<WorkOrder | null>(null);
   const [selectedTechId, setSelectedTechId] = useState<string>('');
@@ -81,21 +94,7 @@ export const WorkOrdersView: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Form Create State with EXACT requested fields:
-  // - NO WO
-  // - Tanggal WO
-  // - Prioritas: Emergency, High, Medium, Low
-  // - Kategori WO: Corrective, Preventive, Installation, Inspection, Operation, Supervise
-  // - Jenis Pekerjaan: Mechanical, Electrical, Sipil, Others
-  // - Jadwal Pekerjaan: Mulai Tanggal & Selesai Tanggal (setelah Jenis Pekerjaan)
-  // - Vendor Pelaksana
-  // - Nama Pelaksana
-  // - Nama Supervisor
-  // - Nama Aset
-  // - Lokasi
-  // - Deskripsi
-  // - Part/Material/Mesin: | NO | Nama Part/Material/Mesin | QTY | Unit |
-  // - Dokumentasi: upload foto / camera
+  // Form State
   const [formWO, setFormWO] = useState({
     woNumber: '',
     woDate: new Date().toISOString().substring(0, 10),
@@ -140,6 +139,38 @@ export const WorkOrdersView: React.FC = () => {
     return matchesSearch && matchesCategory && matchesPriority && matchesStatus;
   });
 
+  // Multi-Select Handlers
+  const handleSelectAll = () => {
+    if (selectedWOIds.length === filteredWOs.length && filteredWOs.length > 0) {
+      setSelectedWOIds([]);
+    } else {
+      setSelectedWOIds(filteredWOs.map((w) => w.id));
+    }
+  };
+
+  const handleToggleSelect = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedWOIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedWOIds.length === 0) return;
+    if (window.confirm(`Apakah Anda yakin ingin menghapus ${selectedWOIds.length} Work Order terpilih?`)) {
+      deleteBulkWorkOrders(selectedWOIds);
+      setSelectedWOIds([]);
+    }
+  };
+
+  const handleDeleteSingle = (wo: WorkOrder, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (window.confirm(`Apakah Anda yakin ingin menghapus Work Order ${wo.woNumber} (${wo.assetName})?`)) {
+      deleteWorkOrder(wo.id);
+      setSelectedWOIds((prev) => prev.filter((id) => id !== wo.id));
+    }
+  };
+
   const handleOpenCreate = () => {
     const nextCount = workOrders.length + 1;
     const generatedWONumber = `WO-${new Date().getFullYear()}-${nextCount.toString().padStart(4, '0')}`;
@@ -173,6 +204,38 @@ export const WorkOrdersView: React.FC = () => {
       photos: []
     });
     setIsCreateModalOpen(true);
+  };
+
+  const handleOpenEdit = (wo: WorkOrder, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingWOId(wo.id);
+
+    const defaultTech = technicians.find((t) => t.id === wo.assignedToId || t.name === wo.assignedToName);
+    const defaultSpv = supervisors.find((s) => s.id === wo.supervisorId || s.name === wo.supervisorName);
+
+    setFormWO({
+      woNumber: wo.woNumber,
+      woDate: wo.woDate || (wo.createdAt ? wo.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+      priority: wo.priority || 'Medium',
+      woCategory: (wo.woCategory as WOCategory) || 'Corrective',
+      jobType: (wo.jobType as JobType) || 'Mechanical',
+      startDate: wo.startDate || (wo.createdAt ? wo.createdAt.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+      endDate: wo.endDate || wo.dueDate || new Date(Date.now() + 2 * 86400000).toISOString().substring(0, 10),
+      vendorName: wo.vendorName || 'Internal Facilities Team',
+      assignedToName: wo.assignedToName || (defaultTech ? defaultTech.name : ''),
+      assignedToId: wo.assignedToId || (defaultTech ? defaultTech.id : ''),
+      supervisorName: wo.supervisorName || (defaultSpv ? defaultSpv.name : ''),
+      supervisorId: wo.supervisorId || (defaultSpv ? defaultSpv.id : ''),
+      location: wo.location || '',
+      assetName: wo.assetName || '',
+      assetId: wo.assetId || '',
+      description: wo.description || '',
+      materials: (wo.materials && wo.materials.length > 0)
+        ? wo.materials
+        : [{ id: 'mat-1', name: '', qty: 1, unit: 'Pcs' }],
+      photos: wo.photos || []
+    });
+    setIsEditModalOpen(true);
   };
 
   const handleAssetSelectChange = (assetId: string) => {
@@ -248,7 +311,6 @@ export const WorkOrdersView: React.FC = () => {
     e.preventDefault();
     if (!formWO.woNumber.trim() || !formWO.assetName.trim()) return;
 
-    // Filter valid materials
     const validMaterials = formWO.materials.filter((m) => m.name.trim().length > 0);
 
     createWorkOrder({
@@ -286,6 +348,39 @@ export const WorkOrdersView: React.FC = () => {
     });
 
     setIsCreateModalOpen(false);
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingWOId || !formWO.woNumber.trim() || !formWO.assetName.trim()) return;
+
+    const validMaterials = formWO.materials.filter((m) => m.name.trim().length > 0);
+
+    updateWorkOrder(editingWOId, {
+      woNumber: formWO.woNumber,
+      woDate: formWO.woDate,
+      title: `[${formWO.woCategory}] ${formWO.assetName}`,
+      description: formWO.description,
+      assetId: formWO.assetId,
+      assetName: formWO.assetName,
+      location: formWO.location,
+      priority: formWO.priority,
+      woCategory: formWO.woCategory,
+      jobType: formWO.jobType,
+      startDate: formWO.startDate,
+      endDate: formWO.endDate,
+      dueDate: formWO.endDate,
+      vendorName: formWO.vendorName,
+      assignedToId: formWO.assignedToId,
+      assignedToName: formWO.assignedToName,
+      supervisorId: formWO.supervisorId,
+      supervisorName: formWO.supervisorName,
+      materials: validMaterials,
+      photos: formWO.photos
+    });
+
+    setIsEditModalOpen(false);
+    setEditingWOId(null);
   };
 
   const handleOpenAssign = (wo: WorkOrder, e: React.MouseEvent) => {
@@ -362,6 +457,36 @@ export const WorkOrdersView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Bulk Action Banner */}
+      {selectedWOIds.length > 0 && (
+        <div className="flex items-center justify-between p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 shadow-sm animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="font-mono font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300">
+              {selectedWOIds.length}
+            </span>
+            <span className="font-semibold">Work Order terpilih</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSelectedWOIds([])}
+              className="px-3 py-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium cursor-pointer transition-colors"
+            >
+              Batal Pilihan
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer transition-colors"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>Hapus {selectedWOIds.length} Terpilih</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Filter & Search Bar */}
       <div className="industrial-panel p-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white">
@@ -443,6 +568,15 @@ export const WorkOrdersView: React.FC = () => {
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
+                  <th className="px-3 py-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedWOIds.length > 0 && selectedWOIds.length === filteredWOs.length}
+                      onChange={handleSelectAll}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                      title="Pilih Semua Baris"
+                    />
+                  </th>
                   <th className="px-4 py-3">No. WO</th>
                   <th className="px-4 py-3">Tanggal WO</th>
                   <th className="px-4 py-3">Nama Aset & Lokasi</th>
@@ -460,118 +594,150 @@ export const WorkOrdersView: React.FC = () => {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredWOs.length === 0 ? (
                   <tr>
-                    <td colSpan={12} className="text-center py-12 text-slate-400">
+                    <td colSpan={13} className="text-center py-12 text-slate-400">
                       Tidak ada Work Order yang sesuai dengan filter.
                     </td>
                   </tr>
                 ) : (
-                  filteredWOs.map((wo) => (
-                    <tr
-                      key={wo.id}
-                      onClick={() => setSelectedWOForDetail(wo)}
-                      className="hover:bg-slate-50/80 cursor-pointer transition-colors"
-                    >
-                      <td className="px-4 py-3.5 font-mono font-bold text-slate-900 whitespace-nowrap">
-                        <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
-                          {wo.woNumber}
-                        </span>
-                      </td>
+                  filteredWOs.map((wo) => {
+                    const isSelected = selectedWOIds.includes(wo.id);
+                    return (
+                      <tr
+                        key={wo.id}
+                        onClick={() => setSelectedWOForDetail(wo)}
+                        className={`hover:bg-slate-50/80 cursor-pointer transition-colors ${
+                          isSelected ? 'bg-blue-50/40' : ''
+                        }`}
+                      >
+                        <td className="px-3 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => handleToggleSelect(wo.id, e as any)}
+                            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                          />
+                        </td>
 
-                      <td className="px-4 py-3.5 font-mono text-slate-600 whitespace-nowrap">
-                        {wo.woDate || (wo.createdAt ? wo.createdAt.substring(0, 10) : '-')}
-                      </td>
-
-                      <td className="px-4 py-3.5 max-w-[200px]">
-                        <div className="font-bold text-slate-900 truncate">{wo.assetName || wo.title}</div>
-                        <div className="text-[11px] text-slate-500 truncate flex items-center gap-1">
-                          <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
-                          <span>{wo.location || '-'}</span>
-                        </div>
-                      </td>
-
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="flex flex-col gap-1 items-start">
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
-                            {wo.woCategory || 'Corrective'}
+                        <td className="px-4 py-3.5 font-mono font-bold text-slate-900 whitespace-nowrap">
+                          <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">
+                            {wo.woNumber}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-medium">
-                            {wo.jobType || 'Mechanical'}
-                          </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="text-[11px] font-mono text-slate-700 flex items-center gap-1">
-                          <CalendarRange className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                          <span>{wo.startDate || wo.createdAt?.substring(0, 10) || '-'}</span>
-                          <span className="text-slate-400">s/d</span>
-                          <span>{wo.endDate || wo.dueDate || '-'}</span>
-                        </div>
-                      </td>
+                        <td className="px-4 py-3.5 font-mono text-slate-600 whitespace-nowrap">
+                          {wo.woDate || (wo.createdAt ? wo.createdAt.substring(0, 10) : '-')}
+                        </td>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <PriorityBadge priority={wo.priority} />
-                      </td>
+                        <td className="px-4 py-3.5 max-w-[200px]">
+                          <div className="font-bold text-slate-900 truncate">{wo.assetName || wo.title}</div>
+                          <div className="text-[11px] text-slate-500 truncate flex items-center gap-1">
+                            <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{wo.location || '-'}</span>
+                          </div>
+                        </td>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <StatusBadge status={wo.status} />
-                      </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="flex flex-col gap-1 items-start">
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                              {wo.woCategory || 'Corrective'}
+                            </span>
+                            <span className="text-[10px] text-slate-500 font-medium">
+                              {wo.jobType || 'Mechanical'}
+                            </span>
+                          </div>
+                        </td>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="text-slate-800 font-semibold">{wo.assignedToName || 'Unassigned'}</div>
-                        <div className="text-[10px] text-slate-400 truncate max-w-[120px]">{wo.vendorName || 'Internal'}</div>
-                      </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="text-[11px] font-mono text-slate-700 flex items-center gap-1">
+                            <CalendarRange className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span>{wo.startDate || wo.createdAt?.substring(0, 10) || '-'}</span>
+                            <span className="text-slate-400">s/d</span>
+                            <span>{wo.endDate || wo.dueDate || '-'}</span>
+                          </div>
+                        </td>
 
-                      <td className="px-4 py-3.5 whitespace-nowrap">
-                        <div className="text-slate-800 font-medium flex items-center gap-1">
-                          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                          <span>{wo.supervisorName || wo.approvedByName || 'Rian Pratama'}</span>
-                        </div>
-                      </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <PriorityBadge priority={wo.priority} />
+                        </td>
 
-                      <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
-                        {wo.materials && wo.materials.length > 0 ? (
-                          <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[11px]">
-                            {wo.materials.length} item
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <StatusBadge status={wo.status} />
+                        </td>
 
-                      <td className="px-4 py-3.5 text-center whitespace-nowrap">
-                        {wo.photos && wo.photos.length > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
-                            <ImageIcon className="w-3 h-3" />
-                            <span>{wo.photos.length}</span>
-                          </span>
-                        ) : (
-                          <span className="text-slate-400">-</span>
-                        )}
-                      </td>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="text-slate-800 font-semibold">{wo.assignedToName || 'Unassigned'}</div>
+                          <div className="text-[10px] text-slate-400 truncate max-w-[120px]">{wo.vendorName || 'Internal'}</div>
+                        </td>
 
-                      <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {(role === 'admin' || role === 'supervisor') && (
-                            <button
-                              onClick={(e) => handleOpenAssign(wo, e)}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
-                              title="Assign Teknisi"
-                            >
-                              <UserPlus className="w-4 h-4" />
-                            </button>
+                        <td className="px-4 py-3.5 whitespace-nowrap">
+                          <div className="text-slate-800 font-medium flex items-center gap-1">
+                            <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                            <span>{wo.supervisorName || wo.approvedByName || 'Rian Pratama'}</span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
+                          {wo.materials && wo.materials.length > 0 ? (
+                            <span className="px-2 py-0.5 rounded bg-purple-50 text-purple-700 border border-purple-200 text-[11px]">
+                              {wo.materials.length} item
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
                           )}
-                          <button
-                            onClick={() => setSelectedWOForDetail(wo)}
-                            className="p-1.5 text-slate-400 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
-                            title="Buka Detail"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+
+                        <td className="px-4 py-3.5 text-center whitespace-nowrap">
+                          {wo.photos && wo.photos.length > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold">
+                              <ImageIcon className="w-3 h-3" />
+                              <span>{wo.photos.length}</span>
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+
+                        {/* Action Column: Lihat (Detail), Edit, Delete, Assign */}
+                        <td className="px-4 py-3.5 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={() => setSelectedWOForDetail(wo)}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                              title="Lihat Detail Work Order"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+
+                            {(role === 'admin' || role === 'supervisor') && (
+                              <>
+                                <button
+                                  onClick={(e) => handleOpenEdit(wo, e)}
+                                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Edit Work Order"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleOpenAssign(wo, e)}
+                                  className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Assign Teknisi"
+                                >
+                                  <UserPlus className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={(e) => handleDeleteSingle(wo, e)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                  title="Hapus Work Order"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
@@ -612,7 +778,16 @@ export const WorkOrdersView: React.FC = () => {
                           <span className="font-mono font-bold text-[11px] text-slate-900">
                             {wo.woNumber}
                           </span>
-                          <PriorityBadge priority={wo.priority} showIcon={false} />
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={(e) => handleOpenEdit(wo, e)}
+                              className="p-1 text-slate-300 hover:text-amber-600 rounded"
+                              title="Edit"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <PriorityBadge priority={wo.priority} showIcon={false} />
+                          </div>
                         </div>
 
                         <h4 className="font-bold text-xs text-slate-900 line-clamp-2">
@@ -771,10 +946,24 @@ export const WorkOrdersView: React.FC = () => {
             )}
 
             {/* Footer */}
-            <div className="flex justify-end pt-3 border-t border-slate-100">
+            <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+              {(role === 'admin' || role === 'supervisor') && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = selectedWOForDetail;
+                    setSelectedWOForDetail(null);
+                    handleOpenEdit(target);
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-semibold flex items-center gap-1.5 cursor-pointer text-xs"
+                >
+                  <Edit2 className="w-3.5 h-3.5" />
+                  <span>Edit Data WO</span>
+                </button>
+              )}
               <button
                 onClick={() => setSelectedWOForDetail(null)}
-                className="px-4 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
+                className="px-4 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs ml-auto"
               >
                 Tutup
               </button>
@@ -867,15 +1056,19 @@ export const WorkOrdersView: React.FC = () => {
         className="hidden"
       />
 
-      {/* REVISED: Create New Work Order Modal with EXACT requested form fields & clean intuitive layout */}
+      {/* REVISED: Create / Edit Work Order Modal with EXACT requested form fields & clean intuitive layout */}
       <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Terbitkan Work Order Baru"
+        isOpen={isCreateModalOpen || isEditModalOpen}
+        onClose={() => {
+          setIsCreateModalOpen(false);
+          setIsEditModalOpen(false);
+          setEditingWOId(null);
+        }}
+        title={isEditModalOpen ? `Edit Work Order: ${formWO.woNumber}` : 'Terbitkan Work Order Baru'}
         subtitle="Formulir penerbitan tiket pemeliharaan, jadwal pengerjaan & alokasi material"
         maxWidth="3xl"
       >
-        <form onSubmit={handleSaveCreate} className="space-y-3 text-xs">
+        <form onSubmit={isEditModalOpen ? handleSaveEdit : handleSaveCreate} className="space-y-3 text-xs">
           {/* BARIS 1: IDENTIFIKASI DOKUMEN & PRIORITAS (3 Kolom) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             {/* 1. NO WO */}
@@ -964,7 +1157,7 @@ export const WorkOrdersView: React.FC = () => {
               </select>
             </div>
 
-            {/* 6. Jadwal Pekerjaan: Mulai Tanggal (Posisi Tepat Setelah Jenis Pekerjaan) */}
+            {/* 6. Jadwal Pekerjaan: Mulai Tanggal */}
             <div>
               <label className="block text-[11px] font-semibold text-blue-700 mb-0.5 flex items-center gap-1">
                 <Calendar className="w-3 h-3 text-blue-600" />
@@ -1263,7 +1456,11 @@ export const WorkOrdersView: React.FC = () => {
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
-              onClick={() => setIsCreateModalOpen(false)}
+              onClick={() => {
+                setIsCreateModalOpen(false);
+                setIsEditModalOpen(false);
+                setEditingWOId(null);
+              }}
               className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
@@ -1272,7 +1469,7 @@ export const WorkOrdersView: React.FC = () => {
               type="submit"
               className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
-              Terbitkan Work Order
+              {isEditModalOpen ? 'Simpan Perubahan' : 'Terbitkan Work Order'}
             </button>
           </div>
         </form>
