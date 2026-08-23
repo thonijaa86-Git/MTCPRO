@@ -25,6 +25,8 @@ import {
   INITIAL_LOGS,
   INITIAL_NOTIFICATIONS
 } from '../services/mockData';
+import { supabaseService } from '../services/supabaseService';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 interface ToastMessage {
   id: string;
@@ -197,6 +199,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.VENDORS, JSON.stringify(vendors)); }, [vendors]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs)); }, [logs]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); }, [notifications]);
+
+  // Live fetch from Supabase if configured
+  useEffect(() => {
+    if (!isSupabaseConfigured()) return;
+
+    const fetchSupabaseData = async () => {
+      try {
+        const [p, a, w, s, sp, v, mp] = await Promise.all([
+          supabaseService.getProfiles(),
+          supabaseService.getAssets(),
+          supabaseService.getWorkOrders(),
+          supabaseService.getSchedules(),
+          supabaseService.getSpareParts(),
+          supabaseService.getVendors(),
+          supabaseService.getMenuPermissions()
+        ]);
+
+        if (p && p.length > 0) setUsers(p);
+        if (a && a.length > 0) setAssets(a);
+        if (w && w.length > 0) setWorkOrders(w);
+        if (s && s.length > 0) setSchedules(s);
+        if (sp && sp.length > 0) setSpareParts(sp);
+        if (v && v.length > 0) setVendors(v);
+        if (mp && mp.length > 0) setMenuPermissions(mp);
+      } catch (err) {
+        console.error('Supabase initial fetch failed, using local/cache store:', err);
+      }
+    };
+
+    fetchSupabaseData();
+  }, []);
 
   const showToast = (type: ToastMessage['type'], title: string, message?: string) => {
     const id = 'toast_' + Date.now() + Math.random().toString(36).substring(2, 6);
