@@ -49,6 +49,7 @@ export interface UserProfile {
   specialization?: string;
   department?: string;
   joinedDate?: string;
+  status?: 'Aktif' | 'Pending' | 'Ditolak';
 }
 
 export interface Asset {

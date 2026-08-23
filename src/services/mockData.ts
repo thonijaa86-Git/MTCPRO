@@ -20,7 +20,8 @@ export const INITIAL_USERS: UserProfile[] = [
     phone: '+62 812-9988-7711',
     specialization: 'Chief MEP Engineer & Facilities Director',
     department: 'Facility Management',
-    joinedDate: '2026-01-01'
+    joinedDate: '2026-01-01',
+    status: 'Aktif'
   },
   {
     id: 'usr-spv-01',
@@ -31,7 +32,8 @@ export const INITIAL_USERS: UserProfile[] = [
     phone: '+62 813-2233-4455',
     specialization: 'MEP Operations Supervisor',
     department: 'Maintenance & Operations',
-    joinedDate: '2026-01-01'
+    joinedDate: '2026-01-01',
+    status: 'Aktif'
   },
   {
     id: 'usr-tek-01',
@@ -42,7 +44,8 @@ export const INITIAL_USERS: UserProfile[] = [
     phone: '+62 856-1122-3344',
     specialization: 'Teknisi MEP Lapangan',
     department: 'Mechanical Maintenance',
-    joinedDate: '2026-01-01'
+    joinedDate: '2026-01-01',
+    status: 'Aktif'
   }
 ];
 

@@ -28,11 +28,16 @@ export const AuthView: React.FC = () => {
   const [specialization, setSpecialization] = useState('HVAC & Chiller Mechanical');
   const [selectedRole, setSelectedRole] = useState<UserRole>('teknisi');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isRegistering) {
       if (!fullName.trim() || !email.trim()) return;
-      register(fullName, email, selectedRole, specialization);
+      const res = await register(fullName, email, selectedRole, specialization);
+      if (res) {
+        setRegistrationSuccess(true);
+      }
     } else {
       if (!email.trim()) return;
       login(email);
@@ -103,6 +108,48 @@ export const AuthView: React.FC = () => {
               </button>
             </div>
 
+            {registrationSuccess ? (
+              <div className="text-center py-8 px-4 space-y-4">
+                <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto animate-bounce">
+                  <UserCheck className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-bold text-white tracking-tight">Pendaftaran Akun Terkirim!</h3>
+                <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
+                  Permintaan registrasi akun Anda telah berhasil didaftarkan ke sistem dan saat ini <strong>menunggu persetujuan (approval) oleh Administrator</strong>.
+                </p>
+                <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl text-left text-xs space-y-1.5 max-w-md mx-auto">
+                  <div className="flex justify-between text-slate-400">
+                    <span>Nama:</span>
+                    <span className="font-semibold text-white">{fullName}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Email:</span>
+                    <span className="font-mono text-white">{email}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Role Diajukan:</span>
+                    <span className="font-mono uppercase font-bold text-amber-400">{selectedRole}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-400">
+                    <span>Status:</span>
+                    <span className="font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
+                      Menunggu Approval Admin
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRegistrationSuccess(false);
+                    setIsRegistering(false);
+                  }}
+                  className="mt-4 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
+                >
+                  Kembali ke Halaman Login
+                </button>
+              </div>
+            ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               {isRegistering && (
                 <div>
@@ -204,6 +251,7 @@ export const AuthView: React.FC = () => {
                 <ArrowRight className="w-4 h-4" />
               </button>
             </form>
+            )}
           </div>
 
           {/* Quick Demo Access Box (1-Click Login for all 4 Roles) */}

@@ -33,7 +33,8 @@ export const supabaseService = {
         phone: p.phone,
         specialization: p.specialization,
         department: p.department,
-        joinedDate: p.joined_date
+        joinedDate: p.joined_date,
+        status: (p.status as any) || 'Aktif'
       }));
     } catch (err) {
       console.error('Exception fetching profiles:', err);
@@ -52,7 +53,8 @@ export const supabaseService = {
         phone: user.phone,
         specialization: user.specialization,
         department: user.department,
-        joined_date: user.joinedDate || new Date().toISOString().substring(0, 10)
+        joined_date: user.joinedDate || new Date().toISOString().substring(0, 10),
+        status: user.status || 'Pending'
       }]).select().single();
 
       if (error) {
@@ -68,7 +70,8 @@ export const supabaseService = {
         phone: data.phone,
         specialization: data.specialization,
         department: data.department,
-        joinedDate: data.joined_date
+        joinedDate: data.joined_date,
+        status: data.status || 'Pending'
       };
     } catch (err) {
       console.error('Exception inserting profile:', err);
@@ -87,6 +90,77 @@ export const supabaseService = {
       return true;
     } catch (err) {
       console.error('Exception updating user role:', err);
+      return false;
+    }
+  },
+
+  async updateProfileStatus(userId: string, status: 'Aktif' | 'Pending' | 'Ditolak', newRole?: UserRole) {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const payload: any = { status };
+      if (newRole) payload.role = newRole;
+      const { error } = await supabase.from('profiles').update(payload).eq('id', userId);
+      if (error) {
+        console.error('Error updating user status in Supabase:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Exception updating user status:', err);
+      return false;
+    }
+  },
+
+  async updateProfile(userId: string, updates: Partial<UserProfile>) {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.email !== undefined) payload.email = updates.email;
+      if (updates.role !== undefined) payload.role = updates.role;
+      if (updates.phone !== undefined) payload.phone = updates.phone;
+      if (updates.specialization !== undefined) payload.specialization = updates.specialization;
+      if (updates.department !== undefined) payload.department = updates.department;
+      if (updates.status !== undefined) payload.status = updates.status;
+
+      const { error } = await supabase.from('profiles').update(payload).eq('id', userId);
+      if (error) {
+        console.error('Error updating user in Supabase:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Exception updating user:', err);
+      return false;
+    }
+  },
+
+  async deleteProfile(userId: string) {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) {
+        console.error('Error deleting user profile from Supabase:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Exception deleting user profile:', err);
+      return false;
+    }
+  },
+
+  async deleteBulkProfiles(userIds: string[]) {
+    if (!isSupabaseConfigured() || userIds.length === 0) return false;
+    try {
+      const { error } = await supabase.from('profiles').delete().in('id', userIds);
+      if (error) {
+        console.error('Error deleting bulk profiles from Supabase:', error);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error('Exception bulk deleting profiles:', err);
       return false;
     }
   },

@@ -107,6 +107,11 @@ interface AppContextType {
   // Team Actions
   updateUserRole: (userId: string, newRole: UserRole) => void;
   addUser: (user: Omit<UserProfile, 'id'>) => void;
+  updateUser: (id: string, updates: Partial<UserProfile>) => void;
+  approveUser: (id: string, assignedRole: UserRole, department?: string) => void;
+  rejectUser: (id: string) => void;
+  deleteUser: (id: string) => void;
+  deleteBulkUsers: (ids: string[]) => void;
   
   // Vendor Actions
   addVendor: (vendor: Omit<Vendor, 'id'>) => void;
@@ -294,6 +299,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       foundUser = users.find((u) => u.role === role);
     }
     if (foundUser) {
+      if (foundUser.status === 'Pending') {
+        showToast('warning', 'Akun Menunggu Persetujuan Admin', 'Pendaftaran akun Anda sedang menunggu verifikasi/approval oleh Administrator.');
+        return false;
+      }
+      if (foundUser.status === 'Ditolak') {
+        showToast('error', 'Akses Akun Ditolak', 'Pendaftaran akun Anda telah ditolak oleh Administrator.');
+        return false;
+      }
       setCurrentUser(foundUser);
       showToast('success', `Selamat Datang, ${foundUser.name}`, `Login berhasil sebagai ${foundUser.role.toUpperCase()}`);
       addLog('Login Pengguna', 'user', foundUser.id, `User ${foundUser.name} (${foundUser.role}) berhasil masuk.`);
@@ -316,9 +329,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       role,
       avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
       phone: '+62 8' + Math.floor(100000000 + Math.random() * 900000000),
-      specialization: specialization || 'MEP Generalist Technician',
-      department: role === 'admin' ? 'Facility Management' : role === 'manager' ? 'Executive' : 'Operations',
-      joinedDate: new Date().toISOString().substring(0, 10)
+      specialization: specialization || 'Teknisi Lapangan MEP',
+      department: role === 'admin' ? 'Facility Management' : role === 'manager' ? 'Executive' : role === 'supervisor' ? 'Maintenance Operations' : 'Mechanical & Electrical Maintenance',
+      joinedDate: new Date().toISOString().substring(0, 10),
+      status: 'Pending'
     };
 
     // Save to Supabase
@@ -329,9 +343,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     setUsers((prev) => [...prev, newUser]);
-    setCurrentUser(newUser);
-    showToast('success', 'Pendaftaran Berhasil', `Akun ${name} telah dibuat sebagai ${role.toUpperCase()}.`);
-    addLog('Registrasi Akun Baru', 'user', newUser.id, `Akun baru terdaftar: ${name} (${role}).`);
+    showToast('warning', 'Pendaftaran Berhasil Dikirim!', 'Akun Anda sedang menunggu persetujuan (approval) oleh Administrator sebelum dapat login.');
+    addLog('Registrasi Akun Baru', 'user', newUser.id, `Pendaftaran akun baru menunggu persetujuan admin: ${name} (${email}).`);
     return true;
   };
 
@@ -836,17 +849,74 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addUser = (userData: Omit<UserProfile, 'id'>) => {
     const id = 'usr-' + Date.now();
-    const newUser: UserProfile = { id, ...userData };
+    const newUser: UserProfile = { id, status: 'Aktif', ...userData };
     setUsers((prev) => [...prev, newUser]);
 
     // Save directly to Supabase profiles table
-    supabaseService.insertProfile(userData).then((created) => {
+    supabaseService.insertProfile(newUser).then((created) => {
       if (created) {
         setUsers((prev) => prev.map((u) => (u.email === created.email ? created : u)));
       }
     });
 
     showToast('success', 'Anggota Tim Ditambahkan', `${newUser.name} [${newUser.role.toUpperCase()}]`);
+    addLog('Tambah Anggota Tim', 'user', id, `Menambahkan anggota tim: ${newUser.name} (${newUser.role})`);
+  };
+
+  const updateUser = (id: string, updates: Partial<UserProfile>) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, ...updates } : u))
+    );
+    supabaseService.updateProfile(id, updates);
+    showToast('info', 'Data Anggota Diperbarui', 'Perubahan data personil berhasil disimpan.');
+    addLog('Edit Anggota Tim', 'user', id, `Memperbarui data profil pengguna ID ${id}`);
+  };
+
+  const approveUser = (id: string, assignedRole: UserRole, department?: string) => {
+    setUsers((prev) =>
+      prev.map((u) => {
+        if (u.id === id) {
+          return {
+            ...u,
+            status: 'Aktif',
+            role: assignedRole,
+            department: department || u.department
+          };
+        }
+        return u;
+      })
+    );
+
+    supabaseService.updateProfileStatus(id, 'Aktif', assignedRole);
+    const target = users.find((u) => u.id === id);
+    showToast('success', 'Pendaftaran Akun Disetujui!', `${target?.name || 'Pengguna'} kini aktif dengan peran ${assignedRole.toUpperCase()}.`);
+    addLog('Approval Pengguna', 'user', id, `Admin menyetujui akun ${target?.name} dengan peran ${assignedRole.toUpperCase()}`);
+  };
+
+  const rejectUser = (id: string) => {
+    setUsers((prev) =>
+      prev.map((u) => (u.id === id ? { ...u, status: 'Ditolak' } : u))
+    );
+    supabaseService.updateProfileStatus(id, 'Ditolak');
+    const target = users.find((u) => u.id === id);
+    showToast('info', 'Pendaftaran Ditolak', `Pendaftaran akun ${target?.name || 'pengguna'} telah ditolak.`);
+    addLog('Penolakan Pengguna', 'user', id, `Admin menolak pendaftaran akun ${target?.name} (${target?.email})`);
+  };
+
+  const deleteUser = (id: string) => {
+    const target = users.find((u) => u.id === id);
+    setUsers((prev) => prev.filter((u) => u.id !== id));
+    supabaseService.deleteProfile(id);
+    showToast('info', 'Pengguna Dihapus', `${target?.name || id} telah dihapus dari sistem.`);
+    addLog('Hapus Pengguna', 'user', id, `Menghapus akun personil: ${target?.name}`);
+  };
+
+  const deleteBulkUsers = (ids: string[]) => {
+    if (ids.length === 0) return;
+    setUsers((prev) => prev.filter((u) => !ids.includes(u.id)));
+    supabaseService.deleteBulkProfiles(ids);
+    showToast('info', 'Pengguna Terpilih Dihapus', `${ids.length} pengguna berhasil dihapus.`);
+    addLog('Hapus Massal Pengguna', 'user', ids[0], `Menghapus ${ids.length} personil sekaligus`);
   };
 
   // Vendor Actions
@@ -968,6 +1038,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteBulkSpareParts,
         updateUserRole,
         addUser,
+        updateUser,
+        approveUser,
+        rejectUser,
+        deleteUser,
+        deleteBulkUsers,
         addVendor,
         updateVendor,
         deleteVendor,
