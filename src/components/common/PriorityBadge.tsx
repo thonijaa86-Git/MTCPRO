@@ -1,6 +1,6 @@
 import React from 'react';
 import { WOPriority } from '../../types';
-import { AlertCircle, AlertTriangle, ArrowDownCircle, CheckCircle2 } from 'lucide-react';
+import { Flame, AlertTriangle, Clock, ArrowDownCircle, AlertCircle } from 'lucide-react';
 
 interface PriorityBadgeProps {
   priority: WOPriority;
@@ -10,29 +10,32 @@ interface PriorityBadgeProps {
 export const PriorityBadge: React.FC<PriorityBadgeProps> = ({ priority, showIcon = true }) => {
   const getStyle = () => {
     switch (priority) {
+      case 'Emergency':
       case 'Kritis':
         return {
-          bg: 'bg-rose-500/10 text-rose-700 border-rose-300 ring-1 ring-rose-500/20',
-          icon: <AlertCircle className="w-3.5 h-3.5 text-rose-600 animate-bounce" />,
-          label: 'Kritis'
+          bg: 'bg-rose-50 text-rose-700 border-rose-300 ring-1 ring-rose-500/20',
+          icon: <Flame className="w-3.5 h-3.5 text-rose-600 animate-pulse" />,
+          label: 'Emergency'
         };
+      case 'High':
       case 'Tinggi':
         return {
-          bg: 'bg-orange-500/10 text-orange-700 border-orange-300',
+          bg: 'bg-orange-50 text-orange-700 border-orange-300',
           icon: <AlertTriangle className="w-3.5 h-3.5 text-orange-600" />,
-          label: 'Tinggi'
+          label: 'High'
         };
       case 'Medium':
         return {
-          bg: 'bg-blue-500/10 text-blue-700 border-blue-300',
-          icon: <CheckCircle2 className="w-3.5 h-3.5 text-blue-600" />,
+          bg: 'bg-amber-50 text-amber-800 border-amber-300',
+          icon: <Clock className="w-3.5 h-3.5 text-amber-600" />,
           label: 'Medium'
         };
+      case 'Low':
       case 'Rendah':
         return {
-          bg: 'bg-slate-500/10 text-slate-700 border-slate-300',
+          bg: 'bg-slate-100 text-slate-700 border-slate-300',
           icon: <ArrowDownCircle className="w-3.5 h-3.5 text-slate-500" />,
-          label: 'Rendah'
+          label: 'Low'
         };
       default:
         return {

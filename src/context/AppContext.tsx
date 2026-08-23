@@ -73,7 +73,7 @@ interface AppContextType {
   deleteAsset: (id: string) => void;
   
   // Work Order Actions
-  createWorkOrder: (wo: Omit<WorkOrder, 'id' | 'woNumber' | 'createdAt'>) => void;
+  createWorkOrder: (wo: Omit<WorkOrder, 'id' | 'createdAt'> & { id?: string; woNumber?: string; createdAt?: string }) => void;
   updateWorkOrderStatus: (id: string, status: WOStatus, notes?: string) => void;
   updateWorkOrderPriority: (id: string, priority: WOPriority) => void;
   assignWorkOrder: (id: string, technicianId: string) => void;
@@ -400,29 +400,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Work Order Actions
-  const createWorkOrder = (woData: Omit<WorkOrder, 'id' | 'woNumber' | 'createdAt'>) => {
+  const createWorkOrder = (woData: Omit<WorkOrder, 'id' | 'createdAt'> & { id?: string; woNumber?: string; createdAt?: string }) => {
     const count = workOrders.length + 1;
-    const woNumber = `WO-2026-${count.toString().padStart(4, '0')}`;
-    const id = `wo-${count.toString().padStart(2, '0')}`;
+    const woNumber = woData.woNumber || `WO-2026-${count.toString().padStart(4, '0')}`;
+    const id = woData.id || `wo-${count.toString().padStart(2, '0')}`;
     const now = new Date();
-    const timeStr = now.toISOString().replace('T', ' ').substring(0, 16);
+    const timeStr = woData.createdAt || woData.woDate || now.toISOString().replace('T', ' ').substring(0, 16);
 
     const newWO: WorkOrder = {
+      ...woData,
       id,
       woNumber,
       createdAt: timeStr,
-      ...woData
+      woDate: woData.woDate || timeStr.substring(0, 10)
     };
     setWorkOrders((prev) => [newWO, ...prev]);
 
     // Save to Supabase
-    supabaseService.insertWorkOrder(woData).then((created) => {
+    supabaseService.insertWorkOrder(newWO).then((created) => {
       if (created) {
         setWorkOrders((prev) => prev.map((w) => (w.title === created.title ? created : w)));
       }
     });
 
-    showToast('success', 'Work Order Diterbitkan', `${newWO.woNumber}: ${newWO.title}`);
+    showToast('success', 'Work Order Diterbitkan', `${newWO.woNumber}: ${newWO.title || newWO.assetName}`);
     addLog('Buat Work Order', 'work_order', id, `Menerbitkan ${newWO.woNumber} [${newWO.priority}] untuk aset ${newWO.assetName}`);
   };
 

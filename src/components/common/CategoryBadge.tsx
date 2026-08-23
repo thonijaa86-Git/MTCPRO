@@ -17,11 +17,11 @@ import {
 } from 'lucide-react';
 
 interface CategoryBadgeProps {
-  category: MepCategory;
+  category?: MepCategory | string;
   showIcon?: boolean;
 }
 
-export const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category, showIcon = true }) => {
+export const CategoryBadge: React.FC<CategoryBadgeProps> = ({ category = 'Mechanical', showIcon = true }) => {
   const getCategoryDetails = () => {
     switch (category) {
       case 'Kelistrikan':

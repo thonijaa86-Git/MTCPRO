@@ -257,27 +257,30 @@ export const supabaseService = {
     }
   },
 
-  async insertWorkOrder(wo: Omit<WorkOrder, 'id' | 'woNumber' | 'createdAt'>): Promise<WorkOrder | null> {
+  async insertWorkOrder(wo: Partial<WorkOrder>): Promise<WorkOrder | null> {
     if (!isSupabaseConfigured()) return null;
     try {
+      const generatedNumber = wo.woNumber || `WO-2026-${Math.floor(1000 + Math.random() * 9000)}`;
       const { data, error } = await supabase.from('work_orders').insert([{
-        wo_number: `WO-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-        title: wo.title,
+        wo_number: generatedNumber,
+        title: wo.title || `Work Order ${wo.assetName}`,
         description: wo.description,
         asset_name: wo.assetName,
-        asset_tag: wo.assetTag,
-        category: wo.category,
+        asset_tag: wo.assetTag || 'AST-MEP',
+        category: (wo.jobType as any) || (wo.category as any) || 'Mechanical',
         location: wo.location,
         priority: wo.priority,
-        status: wo.status,
+        status: wo.status || 'Open',
         assigned_to_id: wo.assignedToId && wo.assignedToId.length > 20 ? wo.assignedToId : null,
         assigned_to_name: wo.assignedToName,
-        created_by_name: wo.createdByName,
+        created_by_name: wo.createdByName || 'Admin',
         due_date: wo.dueDate,
-        estimated_hours: wo.estimatedHours,
+        estimated_hours: wo.estimatedHours || 4,
         total_steps: wo.totalSteps || [],
         steps_completed: wo.stepsCompleted || [],
-        spare_parts_used: wo.sparePartsUsed || []
+        spare_parts_used: wo.materials || wo.sparePartsUsed || [],
+        technician_notes: wo.technicianNotes,
+        completion_proof_url: wo.photos && wo.photos.length > 0 ? wo.photos[0] : wo.completionProofUrl
       }]).select().single();
 
       if (error) {
@@ -287,6 +290,7 @@ export const supabaseService = {
       return {
         id: data.id,
         woNumber: data.wo_number,
+        woDate: wo.woDate || data.created_at?.substring(0, 10),
         title: data.title,
         description: data.description,
         assetId: data.asset_id || '',
@@ -295,6 +299,9 @@ export const supabaseService = {
         category: data.category,
         location: data.location,
         priority: data.priority,
+        woCategory: wo.woCategory,
+        jobType: wo.jobType,
+        vendorName: wo.vendorName,
         status: data.status,
         assignedToId: data.assigned_to_id,
         assignedToName: data.assigned_to_name,
@@ -305,7 +312,9 @@ export const supabaseService = {
         estimatedHours: Number(data.estimated_hours),
         totalSteps: data.total_steps,
         stepsCompleted: data.steps_completed,
-        sparePartsUsed: data.spare_parts_used
+        sparePartsUsed: data.spare_parts_used,
+        materials: wo.materials,
+        photos: wo.photos
       };
     } catch (err) {
       console.error('Exception inserting work order:', err);

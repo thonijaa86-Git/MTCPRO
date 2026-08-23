@@ -22,11 +22,22 @@ export type AssetStatus = 'Operasional' | 'Perbaikan' | 'Kritis' | 'Non-Aktif';
 
 export type AssetCondition = 'Sangat Baik' | 'Baik' | 'Perlu Perhatian' | 'Rusak';
 
-export type WOPriority = 'Kritis' | 'Tinggi' | 'Medium' | 'Rendah';
-
 export type WOStatus = 'Open' | 'Proses' | 'Pending' | 'Selesai' | 'Disetujui';
 
 export type ScheduleFrequency = 'Harian' | 'Mingguan' | 'Bulanan' | 'Triwulan' | 'Semester' | 'Tahunan';
+
+export type WOPriority = 'Emergency' | 'High' | 'Medium' | 'Low' | 'Kritis' | 'Tinggi' | 'Rendah' | string;
+
+export type WOCategory = 'Corrective' | 'Preventive' | 'Inspection' | 'Operation' | 'Supervise' | string;
+
+export type JobType = 'Mechanical' | 'Electrical' | 'Sipil' | 'Others' | string;
+
+export interface MaterialItem {
+  id: string;
+  name: string; // Nama Part/Material/Mesin
+  qty: number; // QTY
+  unit: string; // Unit (Pcs, Set, Liter, Meter, Roll, dll)
+}
 
 export interface UserProfile {
   id: string;
@@ -64,20 +75,23 @@ export interface Asset {
 
 export interface WorkOrder {
   id: string;
-  woNumber: string; // e.g. "WO-2026-0801"
+  woNumber: string; // NO WO (e.g. "WO-2026-001")
+  woDate?: string; // Tanggal WO
   title: string;
   description: string;
-  assetId: string;
-  assetName: string;
-  assetTag: string;
-  category: MepCategory;
-  location: string;
-  priority: WOPriority;
-  status: WOStatus;
+  assetId?: string;
+  assetName: string; // Nama Aset
+  assetTag?: string;
+  category?: MepCategory;
+  location: string; // Lokasi
+  priority: WOPriority; // Emergency, High, Medium, Low
+  woCategory?: WOCategory; // Corrective, Preventive, Inspection, Operation, Supervise
+  jobType?: JobType; // Mechanical, Electrical, Sipil, Others
+  vendorName?: string; // Vendor Pelaksana
   assignedToId?: string;
-  assignedToName?: string;
-  createdById: string;
-  createdByName: string;
+  assignedToName?: string; // Nama Pelaksana
+  createdById?: string;
+  createdByName?: string;
   createdAt: string;
   dueDate?: string;
   completedAt?: string;
@@ -86,6 +100,8 @@ export interface WorkOrder {
   approvedAt?: string;
   estimatedHours?: number;
   actualHours?: number;
+  materials?: MaterialItem[]; // Tabel Part/Material/Mesin
+  photos?: string[]; // Dokumentasi foto upload / camera
   stepsCompleted?: string[];
   totalSteps?: string[];
   sparePartsUsed?: {
@@ -96,6 +112,7 @@ export interface WorkOrder {
   }[];
   technicianNotes?: string;
   completionProofUrl?: string;
+  status: WOStatus;
 }
 
 export interface MaintenanceSchedule {
