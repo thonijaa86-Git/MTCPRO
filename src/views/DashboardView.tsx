@@ -94,11 +94,11 @@ export const DashboardView: React.FC = () => {
             )}
             {role === 'teknisi' && (
               <button
-                onClick={() => setCurrentView('teknisi_tasks')}
+                onClick={() => setCurrentView('work_orders')}
                 className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
               >
-                <Wrench className="w-4 h-4" />
-                <span>Buka Tugas Saya ({myAssignedWOs.length})</span>
+                <ClipboardList className="w-4 h-4" />
+                <span>Lihat Work Order</span>
               </button>
             )}
             {role === 'supervisor' && (

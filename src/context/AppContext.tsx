@@ -127,16 +127,16 @@ type SparePartsState = SparePart[];
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 const STORAGE_KEYS = {
-  USERS: 'mtcpro_users_v1',
-  CURRENT_USER: 'mtcpro_current_user_v1',
-  PERMISSIONS: 'mtcpro_permissions_v1',
-  ASSETS: 'mtcpro_assets_v1',
-  WORK_ORDERS: 'mtcpro_work_orders_v1',
-  SCHEDULES: 'mtcpro_schedules_v1',
-  SPARE_PARTS: 'mtcpro_spare_parts_v1',
-  VENDORS: 'mtcpro_vendors_v1',
-  LOGS: 'mtcpro_logs_v1',
-  NOTIFICATIONS: 'mtcpro_notifications_v1',
+  USERS: 'mtcpro_users_v2',
+  CURRENT_USER: 'mtcpro_current_user_v2',
+  PERMISSIONS: 'mtcpro_permissions_v2',
+  ASSETS: 'mtcpro_assets_v2',
+  WORK_ORDERS: 'mtcpro_work_orders_v2',
+  SCHEDULES: 'mtcpro_schedules_v2',
+  SPARE_PARTS: 'mtcpro_spare_parts_v2',
+  VENDORS: 'mtcpro_vendors_v2',
+  LOGS: 'mtcpro_logs_v2',
+  NOTIFICATIONS: 'mtcpro_notifications_v2',
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
