@@ -1,6 +1,22 @@
 export type UserRole = 'admin' | 'teknisi' | 'supervisor' | 'manager';
 
-export type MepCategory = 'Mechanical' | 'Electrical' | 'Plumbing';
+export type MepCategory =
+  | 'Kelistrikan'
+  | 'Genset'
+  | 'HVAC'
+  | 'Air bersih'
+  | 'Grounding & Penyalur Petir'
+  | 'CCTV'
+  | 'Hydrant'
+  | 'Fire Alarm'
+  | 'IPAL'
+  | 'Video Audio'
+  | 'Bangunan'
+  | 'Landscape'
+  | 'Mechanical'
+  | 'Electrical'
+  | 'Plumbing'
+  | string;
 
 export type AssetStatus = 'Operasional' | 'Perbaikan' | 'Kritis' | 'Non-Aktif';
 
@@ -26,10 +42,13 @@ export interface UserProfile {
 
 export interface Asset {
   id: string;
-  assetTag: string; // e.g. "MEP-MEC-001"
-  name: string;
-  category: MepCategory;
-  location: string;
+  assetTag: string; // e.g. "NO Aset: AST-HVAC-001"
+  name: string; // Nama Aset
+  category: MepCategory; // Kategori dropdown
+  location: string; // Lokasi
+  specification?: string; // Spesifikasi
+  manufactureYear?: string | number; // Tahun Pembuatan
+  installYear?: string | number; // Tahun Instalasi
   status: AssetStatus;
   condition: AssetCondition;
   manufacturer?: string;
