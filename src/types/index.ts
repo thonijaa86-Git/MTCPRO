@@ -28,7 +28,7 @@ export type ScheduleFrequency = 'Harian' | 'Mingguan' | 'Bulanan' | 'Triwulan' |
 
 export type WOPriority = 'Emergency' | 'High' | 'Medium' | 'Low' | 'Kritis' | 'Tinggi' | 'Rendah' | string;
 
-export type WOCategory = 'Corrective' | 'Preventive' | 'Inspection' | 'Operation' | 'Supervise' | string;
+export type WOCategory = 'Corrective' | 'Preventive' | 'Installation' | 'Inspection' | 'Operation' | 'Supervise' | string;
 
 export type JobType = 'Mechanical' | 'Electrical' | 'Sipil' | 'Others' | string;
 

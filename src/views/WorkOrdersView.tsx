@@ -40,7 +40,7 @@ import {
 } from 'lucide-react';
 
 export const WO_PRIORITY_OPTIONS: WOPriority[] = ['Emergency', 'High', 'Medium', 'Low'];
-export const WO_CATEGORY_OPTIONS: WOCategory[] = ['Corrective', 'Preventive', 'Inspection', 'Operation', 'Supervise'];
+export const WO_CATEGORY_OPTIONS: WOCategory[] = ['Corrective', 'Preventive', 'Installation', 'Inspection', 'Operation', 'Supervise'];
 export const JOB_TYPE_OPTIONS: JobType[] = ['Mechanical', 'Electrical', 'Sipil', 'Others'];
 
 export const WorkOrdersView: React.FC = () => {
