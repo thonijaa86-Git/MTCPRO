@@ -90,6 +90,8 @@ export interface WorkOrder {
   vendorName?: string; // Vendor Pelaksana
   assignedToId?: string;
   assignedToName?: string; // Nama Pelaksana
+  supervisorId?: string;
+  supervisorName?: string; // Nama Supervisor
   createdById?: string;
   createdByName?: string;
   createdAt: string;

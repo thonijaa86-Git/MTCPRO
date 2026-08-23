@@ -36,7 +36,8 @@ import {
   Building,
   HardHat,
   X,
-  FileText
+  FileText,
+  ShieldCheck
 } from 'lucide-react';
 
 export const WO_PRIORITY_OPTIONS: WOPriority[] = ['Emergency', 'High', 'Medium', 'Low'];
@@ -60,6 +61,7 @@ export const WorkOrdersView: React.FC = () => {
 
   const role = currentUser?.role || 'teknisi';
   const technicians = users.filter((u) => u.role === 'teknisi');
+  const supervisors = users.filter((u) => u.role === 'supervisor' || u.role === 'manager' || u.role === 'admin');
 
   // View & Filter states
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
@@ -78,16 +80,17 @@ export const WorkOrdersView: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
-  // Form Create State with EXACT required fields:
+  // Form Create State with EXACT requested fields:
   // - NO WO
   // - Tanggal WO
   // - Prioritas: Emergency, High, Medium, Low
-  // - Kategori WO: Corrective, Preventive, Inspection, Operation, Supervise
+  // - Kategori WO: Corrective, Preventive, Installation, Inspection, Operation, Supervise
   // - Jenis Pekerjaan: Mechanical, Electrical, Sipil, Others
   // - Vendor Pelaksana
   // - Nama Pelaksana
-  // - Lokasi
+  // - Nama Supervisor
   // - Nama Aset
+  // - Lokasi
   // - Deskripsi
   // - Part/Material/Mesin: | NO | Nama Part/Material/Mesin | QTY | Unit |
   // - Dokumentasi: upload foto / camera
@@ -100,6 +103,8 @@ export const WorkOrdersView: React.FC = () => {
     vendorName: 'Internal Facilities Team',
     assignedToName: '',
     assignedToId: '',
+    supervisorName: '',
+    supervisorId: '',
     location: '',
     assetName: '',
     assetId: '',
@@ -116,7 +121,8 @@ export const WorkOrdersView: React.FC = () => {
       wo.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       wo.assetName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (wo.location && wo.location.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (wo.assignedToName && wo.assignedToName.toLowerCase().includes(searchQuery.toLowerCase()));
+      (wo.assignedToName && wo.assignedToName.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (wo.supervisorName && wo.supervisorName.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesCategory =
       selectedCategory === 'ALL' || (wo.woCategory ? wo.woCategory === selectedCategory : true);
@@ -135,6 +141,7 @@ export const WorkOrdersView: React.FC = () => {
     const generatedWONumber = `WO-${new Date().getFullYear()}-${nextCount.toString().padStart(4, '0')}`;
     const defaultAsset = assets[0];
     const defaultTech = technicians[0];
+    const defaultSpv = supervisors.find((u) => u.role === 'supervisor') || supervisors[0];
 
     setFormWO({
       woNumber: generatedWONumber,
@@ -143,8 +150,10 @@ export const WorkOrdersView: React.FC = () => {
       woCategory: 'Corrective',
       jobType: 'Mechanical',
       vendorName: 'Internal Facilities Team',
-      assignedToName: defaultTech ? defaultTech.name : 'Tim Teknisi MEP',
+      assignedToName: defaultTech ? defaultTech.name : 'Agus Santoso',
       assignedToId: defaultTech ? defaultTech.id : '',
+      supervisorName: defaultSpv ? defaultSpv.name : 'Rian Pratama',
+      supervisorId: defaultSpv ? defaultSpv.id : '',
       location: defaultAsset ? defaultAsset.location : 'Basement 1 — Machine Room',
       assetName: defaultAsset ? defaultAsset.name : '',
       assetId: defaultAsset ? defaultAsset.id : '',
@@ -247,6 +256,8 @@ export const WorkOrdersView: React.FC = () => {
       vendorName: formWO.vendorName,
       assignedToId: formWO.assignedToId,
       assignedToName: formWO.assignedToName,
+      supervisorId: formWO.supervisorId,
+      supervisorName: formWO.supervisorName,
       materials: validMaterials,
       photos: formWO.photos,
       status: 'Open',
@@ -298,7 +309,7 @@ export const WorkOrdersView: React.FC = () => {
             <span>Manajemen Work Order (WO)</span>
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Pelacakan instruksi kerja, corrective maintenance, penugasan teknisi, dan dokumentasi foto lapangan
+            Pelacakan instruksi kerja, penugasan teknisi & supervisor pengawas, alokasi material, dan dokumentasi foto lapangan
           </p>
         </div>
 
@@ -347,7 +358,7 @@ export const WorkOrdersView: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
-            placeholder="Cari nomor WO, nama aset, lokasi, atau nama pelaksana..."
+            placeholder="Cari nomor WO, nama aset, lokasi, pelaksana, atau supervisor..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white transition-all"
@@ -428,6 +439,7 @@ export const WorkOrdersView: React.FC = () => {
                   <th className="px-4 py-3">Prioritas</th>
                   <th className="px-4 py-3">Status</th>
                   <th className="px-4 py-3">Pelaksana</th>
+                  <th className="px-4 py-3">Supervisor</th>
                   <th className="px-4 py-3 text-center">Part</th>
                   <th className="px-4 py-3 text-center">Foto</th>
                   <th className="px-4 py-3 text-right">Aksi</th>
@@ -436,7 +448,7 @@ export const WorkOrdersView: React.FC = () => {
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredWOs.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="text-center py-12 text-slate-400">
+                    <td colSpan={11} className="text-center py-12 text-slate-400">
                       Tidak ada Work Order yang sesuai dengan filter.
                     </td>
                   </tr>
@@ -487,6 +499,13 @@ export const WorkOrdersView: React.FC = () => {
                       <td className="px-4 py-3.5 whitespace-nowrap">
                         <div className="text-slate-800 font-semibold">{wo.assignedToName || 'Unassigned'}</div>
                         <div className="text-[10px] text-slate-400 truncate max-w-[120px]">{wo.vendorName || 'Internal'}</div>
+                      </td>
+
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        <div className="text-slate-800 font-medium flex items-center gap-1">
+                          <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                          <span>{wo.supervisorName || wo.approvedByName || 'Rian Pratama'}</span>
+                        </div>
                       </td>
 
                       <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-700 whitespace-nowrap">
@@ -639,7 +658,7 @@ export const WorkOrdersView: React.FC = () => {
             </div>
 
             {/* Parameter Information */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-white border border-slate-200 rounded-xl">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3 bg-white border border-slate-200 rounded-xl">
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Nama Aset:</span>
                 <p className="font-bold text-slate-900 text-xs mt-0.5">{selectedWOForDetail.assetName}</p>
@@ -652,12 +671,23 @@ export const WorkOrdersView: React.FC = () => {
                 </p>
               </div>
               <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Supervisor Pengawas:</span>
+                <p className="font-semibold text-blue-800 text-xs mt-0.5 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                  <span>{selectedWOForDetail.supervisorName || selectedWOForDetail.approvedByName || 'Rian Pratama (Supervisor)'}</span>
+                </p>
+              </div>
+              <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Vendor Pelaksana:</span>
                 <p className="font-semibold text-slate-800 text-xs mt-0.5">{selectedWOForDetail.vendorName || 'Internal Facilities Team'}</p>
               </div>
               <div>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Diterbitkan Oleh:</span>
                 <p className="font-semibold text-slate-800 text-xs mt-0.5">{selectedWOForDetail.createdByName || 'Admin'}</p>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Tanggal WO:</span>
+                <p className="font-semibold text-slate-800 text-xs mt-0.5 font-mono">{selectedWOForDetail.woDate || (selectedWOForDetail.createdAt ? selectedWOForDetail.createdAt.substring(0, 10) : '-')}</p>
               </div>
             </div>
 
@@ -813,7 +843,7 @@ export const WorkOrdersView: React.FC = () => {
         className="hidden"
       />
 
-      {/* REVISED: Create New Work Order Modal with EXACT requested form fields */}
+      {/* REVISED: Create New Work Order Modal with EXACT requested form fields & clean intuitive layout */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
@@ -822,7 +852,8 @@ export const WorkOrdersView: React.FC = () => {
         maxWidth="3xl"
       >
         <form onSubmit={handleSaveCreate} className="space-y-3 text-xs">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 sm:gap-3">
+          {/* BARIS 1: IDENTIFIKASI & PRIORITAS (3 Kolom) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
             {/* 1. NO WO */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
@@ -869,8 +900,11 @@ export const WorkOrdersView: React.FC = () => {
                 ))}
               </select>
             </div>
+          </div>
 
-            {/* 4. Kategori WO (Corrective, Preventive, Inspection, Operation, Supervise) */}
+          {/* BARIS 2: KLASIFIKASI PEKERJAAN & VENDOR (3 Kolom) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+            {/* 4. Kategori WO */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Kategori WO <span className="text-rose-500">*</span>
@@ -888,7 +922,7 @@ export const WorkOrdersView: React.FC = () => {
               </select>
             </div>
 
-            {/* 5. Jenis Pekerjaan (Mechanical, Electrical, Sipil, Others) */}
+            {/* 5. Jenis Pekerjaan */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Jenis Pekerjaan <span className="text-rose-500">*</span>
@@ -924,11 +958,14 @@ export const WorkOrdersView: React.FC = () => {
                 ))}
               </select>
             </div>
+          </div>
 
+          {/* BARIS 3: PERSONIL PELAKSANA & SUPERVISOR (2 Kolom Berdampingan) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {/* 7. Nama Pelaksana */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                Nama Pelaksana
+                Nama Pelaksana (Teknisi)
               </label>
               <select
                 value={formWO.assignedToId}
@@ -951,8 +988,37 @@ export const WorkOrdersView: React.FC = () => {
               </select>
             </div>
 
-            {/* 8. Nama Aset */}
-            <div className="sm:col-span-2">
+            {/* 8. Nama Supervisor (Baru) */}
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+                Nama Supervisor (Pengawas)
+              </label>
+              <select
+                value={formWO.supervisorId}
+                onChange={(e) => {
+                  const spv = supervisors.find((s) => s.id === e.target.value);
+                  setFormWO({
+                    ...formWO,
+                    supervisorId: e.target.value,
+                    supervisorName: spv ? spv.name : 'Supervisor MEP'
+                  });
+                }}
+                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white text-slate-800"
+              >
+                <option value="">-- Pilih Supervisor Pengawas --</option>
+                {supervisors.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.role.toUpperCase()})
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* BARIS 4: ASET & LOKASI DETAIL (2 Kolom Berdampingan) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+            {/* 9. Nama Aset */}
+            <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Nama Aset <span className="text-rose-500">*</span>
               </label>
@@ -964,14 +1030,14 @@ export const WorkOrdersView: React.FC = () => {
               >
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
-                    [{a.assetTag}] {a.name} — {a.location}
+                    [{a.assetTag}] {a.name}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* 9. Lokasi */}
-            <div className="sm:col-span-3">
+            {/* 10. Lokasi */}
+            <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
                 Lokasi <span className="text-rose-500">*</span>
               </label>
@@ -984,24 +1050,24 @@ export const WorkOrdersView: React.FC = () => {
                 placeholder="e.g. Lantai 12 — Ruang AHU Sayap Barat"
               />
             </div>
-
-            {/* 10. Deskripsi */}
-            <div className="sm:col-span-3">
-              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                Deskripsi Detail Masalah / Instruksi Kerja <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                rows={2}
-                required
-                value={formWO.description}
-                onChange={(e) => setFormWO({ ...formWO, description: e.target.value })}
-                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white"
-                placeholder="Jelaskan detail temuan masalah, kebocoran, error code, atau lingkup perbaikan yang harus dilakukan..."
-              />
-            </div>
           </div>
 
-          {/* 11. Part/Material/Mesin Table */}
+          {/* BARIS 5: DESKRIPSI MASALAH / INSTRUKSI (Full Width) */}
+          <div>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
+              Deskripsi Detail Masalah / Instruksi Kerja <span className="text-rose-500">*</span>
+            </label>
+            <textarea
+              rows={2}
+              required
+              value={formWO.description}
+              onChange={(e) => setFormWO({ ...formWO, description: e.target.value })}
+              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white"
+              placeholder="Jelaskan detail temuan masalah, kebocoran, error code, atau lingkup perbaikan yang harus dilakukan..."
+            />
+          </div>
+
+          {/* BARIS 6: TABEL PART / MATERIAL / MESIN */}
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-bold text-slate-800 uppercase flex items-center gap-1.5">
@@ -1088,7 +1154,7 @@ export const WorkOrdersView: React.FC = () => {
             </div>
           </div>
 
-          {/* 12. Dokumentasi (Camera & Photo Upload) */}
+          {/* BARIS 7: DOKUMENTASI FOTO */}
           <div className="pt-2 border-t border-slate-100 space-y-2">
             <div className="flex items-center justify-between">
               <label className="block text-[11px] font-bold text-slate-800 uppercase flex items-center gap-1.5">
