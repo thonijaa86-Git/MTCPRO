@@ -276,7 +276,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
-  const register = (name: string, email: string, role: UserRole = 'teknisi', specialization?: string) => {
+  const register = async (name: string, email: string, role: UserRole = 'teknisi', specialization?: string) => {
     const exists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());
     if (exists) {
       showToast('error', 'Pendaftaran Gagal', 'Email ini sudah terdaftar di sistem.');
@@ -293,6 +293,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       department: role === 'admin' ? 'Facility Management' : role === 'manager' ? 'Executive' : 'Operations',
       joinedDate: new Date().toISOString().substring(0, 10)
     };
+
+    // Save to Supabase
+    supabaseService.insertProfile(newUser).then((created) => {
+      if (created) {
+        setUsers((prev) => prev.map((u) => (u.email === created.email ? created : u)));
+      }
+    });
+
     setUsers((prev) => [...prev, newUser]);
     setCurrentUser(newUser);
     showToast('success', 'Pendaftaran Berhasil', `Akun ${name} telah dibuat sebagai ${role.toUpperCase()}.`);
@@ -332,20 +340,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateMenuPermission = (menuKey: string, targetRole: 'teknisi' | 'supervisor' | 'manager', allowed: boolean) => {
+    const updatedRoles = menuPermissions.find((p) => p.menuKey === menuKey)?.rolesAllowed;
+    const newRoles = {
+      ...(updatedRoles || { teknisi: true, supervisor: true, manager: true }),
+      [targetRole]: allowed
+    };
+
     setMenuPermissions((prev) =>
       prev.map((perm) => {
         if (perm.menuKey === menuKey) {
           return {
             ...perm,
-            rolesAllowed: {
-              ...perm.rolesAllowed,
-              [targetRole]: allowed
-            }
+            rolesAllowed: newRoles
           };
         }
         return perm;
       })
     );
+
+    // Persist to Supabase
+    supabaseService.updateMenuPermissionInDb(menuKey, newRoles);
+
     showToast('success', 'Izin Menu Diperbarui', `Menu ${menuKey} untuk role ${targetRole.toUpperCase()} diubah.`);
     addLog('Update Izin Menu', 'permission', menuKey, `Izin menu ${menuKey} untuk role ${targetRole} diubah menjadi ${allowed ? 'Aktif' : 'Non-Aktif'}.`);
   };
@@ -355,6 +370,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = 'ast-' + (assets.length + 1).toString().padStart(2, '0');
     const newAsset: Asset = { id, ...assetData };
     setAssets((prev) => [newAsset, ...prev]);
+
+    // Save to Supabase
+    supabaseService.insertAsset(assetData).then((created) => {
+      if (created) {
+        setAssets((prev) => prev.map((a) => (a.assetTag === created.assetTag ? created : a)));
+      }
+    });
+
     showToast('success', 'Aset Berhasil Ditambahkan', `${newAsset.name} [${newAsset.assetTag}]`);
     addLog('Tambah Aset Baru', 'asset', id, `Menambahkan aset MEP: ${newAsset.name} (${newAsset.category})`);
   };
@@ -363,6 +386,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setAssets((prev) =>
       prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
     );
+    supabaseService.updateAsset(id, updates);
     showToast('success', 'Data Aset Diperbarui', `Perubahan aset berhasil disimpan.`);
     addLog('Edit Data Aset', 'asset', id, `Memperbarui data aset ID: ${id}`);
   };
@@ -370,6 +394,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteAsset = (id: string) => {
     const target = assets.find((a) => a.id === id);
     setAssets((prev) => prev.filter((a) => a.id !== id));
+    supabaseService.deleteAsset(id);
     showToast('info', 'Aset Dihapus', `${target?.name || id} telah dihapus dari inventaris.`);
     addLog('Hapus Aset', 'asset', id, `Menghapus aset: ${target?.name}`);
   };
@@ -389,6 +414,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...woData
     };
     setWorkOrders((prev) => [newWO, ...prev]);
+
+    // Save to Supabase
+    supabaseService.insertWorkOrder(woData).then((created) => {
+      if (created) {
+        setWorkOrders((prev) => prev.map((w) => (w.title === created.title ? created : w)));
+      }
+    });
+
     showToast('success', 'Work Order Diterbitkan', `${newWO.woNumber}: ${newWO.title}`);
     addLog('Buat Work Order', 'work_order', id, `Menerbitkan ${newWO.woNumber} [${newWO.priority}] untuk aset ${newWO.assetName}`);
   };
@@ -397,16 +430,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setWorkOrders((prev) =>
       prev.map((wo) => {
         if (wo.id === id) {
+          const completedAt = status === 'Selesai' ? new Date().toISOString().replace('T', ' ').substring(0, 16) : wo.completedAt;
           return {
             ...wo,
             status,
             technicianNotes: notes !== undefined ? notes : wo.technicianNotes,
-            completedAt: status === 'Selesai' ? new Date().toISOString().replace('T', ' ').substring(0, 16) : wo.completedAt
+            completedAt
           };
         }
         return wo;
       })
     );
+    supabaseService.updateWorkOrder(id, { status, technicianNotes: notes });
     showToast('info', 'Status WO Diubah', `Status sekarang: ${status}`);
     addLog('Ubah Status WO', 'work_order', id, `Status WO diubah menjadi ${status}`);
   };
@@ -415,6 +450,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setWorkOrders((prev) =>
       prev.map((wo) => (wo.id === id ? { ...wo, priority } : wo))
     );
+    supabaseService.updateWorkOrder(id, { priority });
     showToast('warning', 'Prioritas WO Diubah', `Prioritas diubah menjadi ${priority}`);
     addLog('Ubah Prioritas WO', 'work_order', id, `Prioritas WO diubah menjadi ${priority}`);
   };
@@ -436,6 +472,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return wo;
       })
     );
+    supabaseService.updateWorkOrder(id, {
+      assignedToId: tech.id,
+      assignedToName: tech.name,
+      status: 'Proses'
+    });
     showToast('success', 'Teknisi Ditugaskan', `${tech.name} ditugaskan pada WO.`);
     addLog('Penugasan Teknisi', 'work_order', id, `Menugaskan teknisi ${tech.name} ke WO ID ${id}`);
   };
@@ -453,6 +494,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           const matched = usedParts.find((u) => u.partId === part.id);
           if (matched) {
             const updatedStock = Math.max(0, part.stock - matched.quantity);
+            supabaseService.updateSparePartStock(part.id, updatedStock);
             return { ...part, stock: updatedStock };
           }
           return part;
@@ -488,6 +530,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
     );
 
+    supabaseService.updateWorkOrder(id, {
+      status: 'Selesai',
+      completedAt: now,
+      technicianNotes: notes,
+      stepsCompleted: completedSteps,
+      sparePartsUsed: sparePartsDetails
+    });
+
     showToast('success', 'Pekerjaan Teknisi Selesai!', 'Menunggu verifikasi dan approval oleh Supervisor.');
     addLog('Penyelesaian Pekerjaan Teknisi', 'work_order', id, `Teknisi ${currentUser?.name} menyelesaikan WO ID ${id}`);
   };
@@ -511,6 +561,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return wo;
       })
     );
+
+    supabaseService.updateWorkOrder(id, {
+      status: 'Disetujui',
+      approvedById: currentUser?.id,
+      approvedByName: currentUser?.name,
+      approvedAt: now
+    });
+
     showToast('success', 'Work Order Disetujui!', 'Pekerjaan telah diverifikasi dan ditutup secara resmi.');
     addLog('Approval Supervisor', 'work_order', id, `Supervisor ${currentUser?.name} menyetujui penutupan WO ID ${id}`);
   };
@@ -527,6 +585,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       ...scheduleData
     };
     setSchedules((prev) => [newSch, ...prev]);
+
+    supabaseService.insertSchedule(scheduleData).then((created) => {
+      if (created) {
+        setSchedules((prev) => prev.map((s) => (s.title === created.title ? created : s)));
+      }
+    });
+
     showToast('success', 'Jadwal Preventif Dibuat', `${newSch.scheduleCode} - ${newSch.title}`);
     addLog('Tambah Jadwal Preventif', 'schedule', id, `Jadwal pemeliharaan preventif baru untuk ${newSch.assetName}`);
   };
@@ -570,25 +635,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     setWorkOrders((prev) => [newWO, ...prev]);
+
+    supabaseService.insertWorkOrder({
+      title: newWO.title,
+      description: newWO.description,
+      assetId: newWO.assetId,
+      assetName: newWO.assetName,
+      assetTag: newWO.assetTag,
+      category: newWO.category,
+      location: newWO.location,
+      priority: newWO.priority,
+      status: newWO.status,
+      assignedToId: newWO.assignedToId,
+      assignedToName: newWO.assignedToName,
+      createdById: newWO.createdById,
+      createdByName: newWO.createdByName,
+      dueDate: newWO.dueDate,
+      estimatedHours: 4,
+      totalSteps: newWO.totalSteps,
+      stepsCompleted: [],
+      sparePartsUsed: []
+    });
+
     showToast('success', 'Auto-Generate Work Order Sukses', `Diterbitkan ${woNumber} dari jadwal ${sch.scheduleCode}`);
     addLog('Generate WO dari Jadwal', 'work_order', id, `Otomatisasi pembuatan WO ${woNumber} dari jadwal preventif ${sch.scheduleCode}`);
   };
 
   // Spare Part Actions
   const restockSparePart = (id: string, quantityToAdd: number) => {
+    let updatedStock = 0;
     setSpareParts((prev) =>
       prev.map((part) => {
         if (part.id === id) {
-          const updated = part.stock + quantityToAdd;
+          updatedStock = part.stock + quantityToAdd;
           return {
             ...part,
-            stock: updated,
+            stock: updatedStock,
             lastRestocked: new Date().toISOString().substring(0, 10)
           };
         }
         return part;
       })
     );
+
+    supabaseService.updateSparePartStock(id, updatedStock);
     showToast('success', 'Restok Berhasil', `+${quantityToAdd} unit berhasil ditambahkan ke inventaris.`);
     addLog('Restok Spare Part', 'spare_part', id, `Menambahkan stok sejumlah ${quantityToAdd} pada suku cadang ID ${id}`);
   };
@@ -597,6 +687,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = 'prt-' + (spareParts.length + 1).toString().padStart(2, '0');
     const newPart: SparePart = { id, ...partData };
     setSpareParts((prev) => [...prev, newPart]);
+
+    supabaseService.insertSparePart(partData).then((created) => {
+      if (created) {
+        setSpareParts((prev) => prev.map((p) => (p.sku === created.sku ? created : p)));
+      }
+    });
+
     showToast('success', 'Suku Cadang Ditambahkan', `${newPart.name} [${newPart.sku}]`);
     addLog('Tambah Spare Part', 'spare_part', id, `Menambahkan suku cadang baru: ${newPart.name}`);
   };
@@ -618,6 +715,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         return u;
       })
     );
+
+    // Save to Supabase
+    supabaseService.updateProfileRole(userId, newRole);
+
     // If updating current user's role
     if (currentUser && currentUser.id === userId) {
       setCurrentUser((prev) => (prev ? { ...prev, role: newRole } : null));
@@ -630,6 +731,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = 'usr-' + Date.now();
     const newUser: UserProfile = { id, ...userData };
     setUsers((prev) => [...prev, newUser]);
+
+    // Save directly to Supabase profiles table
+    supabaseService.insertProfile(userData).then((created) => {
+      if (created) {
+        setUsers((prev) => prev.map((u) => (u.email === created.email ? created : u)));
+      }
+    });
+
     showToast('success', 'Anggota Tim Ditambahkan', `${newUser.name} [${newUser.role.toUpperCase()}]`);
   };
 
@@ -638,6 +747,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const id = 'vnd-' + (vendors.length + 1).toString().padStart(2, '0');
     const newVendor: Vendor = { id, ...vendorData };
     setVendors((prev) => [...prev, newVendor]);
+
+    supabaseService.insertVendor(vendorData).then((created) => {
+      if (created) {
+        setVendors((prev) => prev.map((v) => (v.name === created.name ? created : v)));
+      }
+    });
+
     showToast('success', 'Vendor Mitra Ditambahkan', newVendor.name);
     addLog('Tambah Vendor', 'vendor', id, `Menambahkan mitra rekanan: ${newVendor.name}`);
   };
@@ -652,6 +768,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const deleteVendor = (id: string) => {
     const target = vendors.find((v) => v.id === id);
     setVendors((prev) => prev.filter((v) => v.id !== id));
+    supabaseService.deleteVendor(id);
     showToast('info', 'Vendor Dihapus', `${target?.name || id} telah dihapus.`);
   };
 
