@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   email TEXT UNIQUE NOT NULL,
+  password TEXT,
   phone TEXT,
   company TEXT DEFAULT 'PT DAHANA (Persero)',
   position TEXT DEFAULT 'MEP Specialist',
@@ -28,6 +29,9 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   joined_date DATE DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration support for existing profiles table
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS password TEXT;
 
 -- Table 2: User Roles (Security-Definer multi-role tracking)
 CREATE TABLE IF NOT EXISTS public.user_roles (

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { UserRole } from '../types';
 import {
   Shield,
   Wrench,
@@ -13,18 +12,21 @@ import {
   Building2,
   ChevronDown,
   ArrowRight,
-  Sparkles,
-  Layers,
   Cpu,
   Zap,
   Droplets,
   AlertCircle,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  KeyRound,
+  ShieldCheck
 } from 'lucide-react';
 import { ToastContainer } from '../components/common/Toast';
 
 export const AuthView: React.FC = () => {
-  const { login, register, vendors, users } = useApp();
+  const { login, register, vendors } = useApp();
   const [isRegistering, setIsRegistering] = useState(false);
 
   // List of companies sourced from the Perusahaan (Vendors) Database
@@ -40,6 +42,7 @@ export const AuthView: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [company, setCompany] = useState('');
   const [position, setPosition] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -47,7 +50,7 @@ export const AuthView: React.FC = () => {
 
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
-  // Clear fields on initial mount so login inputs start empty
+  // Clear fields on initial mount
   React.useEffect(() => {
     setEmail('');
     setPassword('');
@@ -55,6 +58,7 @@ export const AuthView: React.FC = () => {
     setPhone('');
     setCompany('');
     setPosition('');
+    setFormError(null);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -75,16 +79,20 @@ export const AuthView: React.FC = () => {
         setFormError('Silakan masukkan alamat email kerja Anda.');
         return;
       }
+      if (!password.trim()) {
+        setFormError('Silakan buat kata sandi (password) untuk akun baru Anda.');
+        return;
+      }
+      if (password.trim().length < 4) {
+        setFormError('Kata sandi minimal terdiri dari 4 karakter.');
+        return;
+      }
       if (!company.trim()) {
-        setFormError('Silakan masukkan nama perusahaan Anda.');
+        setFormError('Silakan pilih nama perusahaan / institusi Anda.');
         return;
       }
       if (!position.trim()) {
         setFormError('Silakan masukkan jabatan / spesialisasi Anda.');
-        return;
-      }
-      if (!password.trim()) {
-        setFormError('Silakan buat kata sandi untuk akun baru Anda.');
         return;
       }
 
@@ -109,30 +117,34 @@ export const AuthView: React.FC = () => {
       }
     } else {
       if (!email.trim()) {
-        setFormError('Silakan masukkan alamat email Anda.');
+        setFormError('Alamat email wajib diisi.');
         return;
       }
+      if (!password.trim()) {
+        setFormError('Kata sandi (password) wajib diisi.');
+        return;
+      }
+
       setIsSubmitting(true);
       try {
-        login(email.trim(), password.trim());
+        const success = login(email.trim(), password.trim());
+        if (!success) {
+          setFormError('Email atau kata sandi tidak cocok, atau akun belum disetujui Admin.');
+        }
       } finally {
         setIsSubmitting(false);
       }
     }
   };
 
-  const handleQuickDemoLogin = (demoRole: UserRole, demoEmail: string) => {
-    login(demoEmail, undefined, demoRole);
-  };
-
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center relative overflow-hidden selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center relative overflow-hidden selection:bg-blue-600 selection:text-white py-12">
       {/* Background Industrial Grid & Glow */}
-      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
+      <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none" />
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8 w-full">
+      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
         {/* Brand Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900 border border-slate-800 mb-4 shadow-lg">
@@ -152,7 +164,7 @@ export const AuthView: React.FC = () => {
             </span>
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-400 max-w-2xl mx-auto">
-            Sistem Otomasi Pemeliharaan Terpadu untuk Fasilitas Mechanical, Electrical, dan Plumbing.
+            Sistem Otentikasi Terpadu Fasilitas Mechanical, Electrical, dan Plumbing PT DAHANA.
           </p>
         </div>
 
@@ -169,7 +181,7 @@ export const AuthView: React.FC = () => {
                   setEmail('');
                   setPassword('');
                 }}
-                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   !isRegistering
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
@@ -189,7 +201,7 @@ export const AuthView: React.FC = () => {
                   setCompany('');
                   setPosition('');
                 }}
-                className={`flex-1 py-2 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                className={`flex-1 py-2.5 rounded-lg text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
                   isRegistering
                     ? 'bg-blue-600 text-white shadow-md'
                     : 'text-slate-400 hover:text-white'
@@ -204,11 +216,11 @@ export const AuthView: React.FC = () => {
                 <div className="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center mx-auto animate-bounce">
                   <UserCheck className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-bold text-white tracking-tight">Pendaftaran Akun Terkirim!</h3>
+                <h3 className="text-lg font-bold text-white tracking-tight">Pendaftaran Akun Berhasil Terkirim!</h3>
                 <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed">
-                  Permintaan registrasi akun Anda telah berhasil didaftarkan ke sistem dan saat ini <strong>menunggu persetujuan (approval) oleh Administrator</strong>.
+                  Permintaan registrasi akun Anda telah tercatat dan saat ini <strong>menunggu verifikasi dan persetujuan (approval) oleh Administrator</strong>.
                 </p>
-                <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl text-left text-xs space-y-2 max-w-md mx-auto">
+                <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-xl text-left text-xs space-y-2.5 max-w-md mx-auto">
                   <div className="flex justify-between text-slate-400">
                     <span>Nama Lengkap:</span>
                     <span className="font-semibold text-white">{fullName}</span>
@@ -229,12 +241,8 @@ export const AuthView: React.FC = () => {
                     <span>Jabatan:</span>
                     <span className="font-semibold text-white">{position}</span>
                   </div>
-                  <div className="flex justify-between text-slate-400 pt-1 border-t border-slate-800">
-                    <span>Penetapan Role:</span>
-                    <span className="font-semibold text-amber-400">Ditentukan oleh Admin</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Status:</span>
+                  <div className="flex justify-between text-slate-400 pt-2 border-t border-slate-800">
+                    <span>Status Akun:</span>
                     <span className="font-mono text-amber-400 font-bold bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
                       Menunggu Approval Admin
                     </span>
@@ -246,6 +254,8 @@ export const AuthView: React.FC = () => {
                   onClick={() => {
                     setRegistrationSuccess(false);
                     setIsRegistering(false);
+                    setEmail('');
+                    setPassword('');
                   }}
                   className="mt-4 px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-600/30 transition-all cursor-pointer"
                 >
@@ -253,248 +263,243 @@ export const AuthView: React.FC = () => {
                 </button>
               </div>
             ) : (
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              {/* Field 1: Nama Lengkap */}
-              {isRegistering && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                    Nama Lengkap
-                  </label>
-                  <div className="relative">
-                    <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Ir. Budi Santoso"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Field 1: Nama Lengkap */}
+                {isRegistering && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Nama Lengkap <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <User className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: Ir. Budi Santoso"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
-
-              {/* Field 2: No Telp / WhatsApp */}
-              {isRegistering && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                    No. Telp / WhatsApp
-                  </label>
-                  <div className="relative">
-                    <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="+62 812-3456-7890"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 font-mono focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Field 3: Alamat Email Kerja */}
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                  Alamat Email Kerja
-                </label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                  <input
-                    type="email"
-                    required
-                    autoComplete="off"
-                    placeholder={isRegistering ? "e.g. budi.santoso@perusahaan.co.id" : "nama@mtcpro.co.id / email Anda"}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Field 4: Password */}
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Kata Sandi
-                  </label>
-                  {!isRegistering && (
-                    <span className="text-[11px] text-blue-400 hover:text-blue-300 cursor-pointer">
-                      Lupa password?
-                    </span>
-                  )}
-                </div>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    placeholder="Masukkan kata sandi akun..."
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                  />
-                </div>
-              </div>
-
-              {/* Field 5: Nama Perusahaan (Dropdown Database Perusahaan) */}
-              {isRegistering && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                    Nama Perusahaan
-                  </label>
-                  <div className="relative">
-                    <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 pointer-events-none" />
-                    <select
-                      required
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      className={`w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none cursor-pointer ${
-                        !company ? 'text-slate-500' : 'text-white font-medium'
-                      }`}
-                    >
-                      <option value="" disabled className="text-slate-500 bg-slate-950">
-                        -- Pilih Nama Perusahaan / Vendor --
-                      </option>
-                      {companyOptions.map((compName) => (
-                        <option key={compName} value={compName} className="bg-slate-900 text-white py-2">
-                          {compName}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5 pointer-events-none" />
-                  </div>
-                </div>
-              )}
-
-              {/* Field 6: Jabatan */}
-              {isRegistering && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1 uppercase tracking-wider">
-                    Jabatan
-                  </label>
-                  <div className="relative">
-                    <Briefcase className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. Manajer Pemeliharaan 1 / Chief Engineer / Teknisi MEP"
-                      value={position}
-                      onChange={(e) => setPosition(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {isRegistering && (
-                <div className="p-3 bg-blue-950/40 border border-blue-800/40 rounded-xl text-slate-300 text-xs flex items-start gap-2.5">
-                  <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    Setelah mendaftar, akun Anda akan diverifikasi oleh Administrator. <strong>Role hak akses</strong> akan ditentukan langsung di Dashboard Admin.
-                  </p>
-                </div>
-              )}
-
-              {formError && (
-                <div className="p-3 bg-rose-950/50 border border-rose-800/50 rounded-xl text-rose-300 text-xs flex items-start gap-2.5 animate-in fade-in">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-rose-300">{formError}</p>
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                onClick={handleSubmit}
-                className="w-full mt-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 active:scale-[0.99] text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-white" />
-                    <span>{isRegistering ? 'Memproses pendaftaran...' : 'Memverifikasi...'}</span>
-                  </span>
-                ) : (
-                  <>
-                    <span>{isRegistering ? 'Daftar Sekarang' : 'Masuk ke Sistem'}</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
                 )}
-              </button>
-            </form>
-            )}
-          </div>
 
-          {/* Right Information & Real Accounts Panel */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-xl">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-4 h-4 text-blue-400" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Sistem Otentikasi Terverifikasi
-                </h3>
-              </div>
-              <p className="text-xs text-slate-400 mb-4">
-                Setiap pengguna yang terdaftar memiliki hak akses sesuai penetapan peran (Role) oleh Administrator PT DAHANA (Persero):
-              </p>
+                {/* Field 2: No Telp / WhatsApp */}
+                {isRegistering && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                      No. Telp / WhatsApp <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Phone className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                      <input
+                        type="tel"
+                        required
+                        placeholder="0812-3456-7890"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 font-mono focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
 
-              <div className="space-y-2.5">
-                {/* Real active users if available */}
-                {users.filter((u) => (u.status || 'Aktif') === 'Aktif').length > 0 ? (
-                  users
-                    .filter((u) => (u.status || 'Aktif') === 'Aktif')
-                    .slice(0, 4)
-                    .map((realUser) => {
-                      const roleColor =
-                        realUser.role === 'admin'
-                          ? 'border-rose-500/30 text-rose-300 bg-rose-500/10'
-                          : realUser.role === 'supervisor'
-                          ? 'border-amber-500/30 text-amber-300 bg-amber-500/10'
-                          : realUser.role === 'manager'
-                          ? 'border-purple-500/30 text-purple-300 bg-purple-500/10'
-                          : 'border-blue-500/30 text-blue-300 bg-blue-500/10';
+                {/* Field 3: Alamat Email Kerja */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                    Alamat Email <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <input
+                      type="email"
+                      required
+                      autoComplete="email"
+                      placeholder="Masukkan alamat email akun Anda..."
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                    />
+                  </div>
+                </div>
 
-                      return (
-                        <button
-                          key={realUser.id}
-                          type="button"
-                          onClick={() => {
-                            setEmail(realUser.email);
-                            if (realUser.password) setPassword(realUser.password);
-                          }}
-                          className="w-full p-3 rounded-xl bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 flex items-center justify-between transition-all group text-left cursor-pointer"
-                        >
-                          <div className="flex items-center gap-3 min-w-0">
-                            <img
-                              src={realUser.avatar}
-                              alt={realUser.name}
-                              className="w-9 h-9 rounded-full object-cover border border-slate-700 shrink-0"
-                            />
-                            <div className="min-w-0 truncate">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-white truncate group-hover:text-blue-300">
-                                  {realUser.name}
-                                </span>
-                                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase ${roleColor}`}>
-                                  {realUser.role}
-                                </span>
-                              </div>
-                              <p className="text-[11px] font-mono text-slate-400 truncate">{realUser.email}</p>
-                            </div>
-                          </div>
-                          <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all shrink-0" />
-                        </button>
-                      );
-                    })
-                ) : (
-                  <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-400 space-y-2">
-                    <p className="font-semibold text-slate-300">Silakan Mendaftar atau Masuk</p>
-                    <p className="text-[11px]">
-                      Gunakan formulir di sebelah kiri untuk membuat akun baru. Akun baru akan diverifikasi oleh Administrator sebelum dapat login.
+                {/* Field 4: Password with Show/Hide Toggle */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+                      Kata Sandi (Password) <span className="text-rose-400">*</span>
+                    </label>
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      autoComplete={isRegistering ? 'new-password' : 'current-password'}
+                      placeholder={isRegistering ? 'Buat kata sandi akun baru...' : 'Masukkan kata sandi akun...'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-3 text-slate-500 hover:text-slate-300 transition-colors cursor-pointer"
+                      title={showPassword ? 'Sembunyikan sandi' : 'Tampilkan sandi'}
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Field 5: Nama Perusahaan */}
+                {isRegistering && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Nama Perusahaan <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Building2 className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5 pointer-events-none" />
+                      <select
+                        required
+                        value={company}
+                        onChange={(e) => setCompany(e.target.value)}
+                        className={`w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-10 py-2.5 text-sm focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all appearance-none cursor-pointer ${
+                          !company ? 'text-slate-500' : 'text-white font-medium'
+                        }`}
+                      >
+                        <option value="" disabled className="text-slate-500 bg-slate-950">
+                          -- Pilih Nama Perusahaan / Vendor --
+                        </option>
+                        {companyOptions.map((compName) => (
+                          <option key={compName} value={compName} className="bg-slate-900 text-white py-2">
+                            {compName}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="w-4 h-4 text-slate-500 absolute right-3.5 top-3.5 pointer-events-none" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Field 6: Jabatan */}
+                {isRegistering && (
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wider">
+                      Jabatan / Spesialisasi <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Briefcase className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                      <input
+                        type="text"
+                        required
+                        placeholder="Contoh: Chief Engineer / Teknisi MEP / Supervisor"
+                        value={position}
+                        onChange={(e) => setPosition(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-hidden focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {isRegistering && (
+                  <div className="p-3.5 bg-blue-950/40 border border-blue-800/40 rounded-xl text-slate-300 text-xs flex items-start gap-2.5">
+                    <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-slate-300 leading-relaxed">
+                      Akun baru akan diverifikasi oleh Administrator sebelum dapat digunakan. <strong>Penetapan hak akses menu</strong> disesuaikan dengan peran kerja Anda.
                     </p>
                   </div>
                 )}
+
+                {formError && (
+                  <div className="p-3.5 bg-rose-950/60 border border-rose-800/60 rounded-xl text-rose-200 text-xs flex items-start gap-2.5 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                    <p className="text-xs text-rose-300">{formError}</p>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full mt-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 active:scale-[0.99] text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin text-white" />
+                      <span>{isRegistering ? 'Memproses Pendaftaran...' : 'Memverifikasi Kredensial...'}</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span>{isRegistering ? 'Kirim Pendaftaran Akun' : 'Masuk ke Sistem'}</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+
+          {/* Right Security & System Information Panel */}
+          <div className="lg:col-span-5 space-y-4">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-xl">
+              <div className="flex items-center gap-2.5 mb-3 text-blue-400">
+                <ShieldCheck className="w-5 h-5" />
+                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
+                  Protokol Keamanan & Otorisasi
+                </h3>
+              </div>
+              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                Aplikasi <strong>MTCPRO</strong> menerapkan pengamanan berlapis berbasis <em>Role-Based Access Control (RBAC)</em>. Setiap pengguna wajib masuk menggunakan kredensial email dan kata sandi yang valid.
+              </p>
+
+              <div className="space-y-3">
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 shrink-0 mt-0.5">
+                    <Shield className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Administrator</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Kontrol penuh database fasilitas, persetujuan user baru, dan konfigurasi hak akses menu 01 s/d 10.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 shrink-0 mt-0.5">
+                    <UserCheck className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Supervisor</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Otorisasi Work Order perbaikan, pengawasan jadwal preventif, dan verifikasi penyelesaian tugas.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 shrink-0 mt-0.5">
+                    <Wrench className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Teknisi MEP</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Eksekusi tugas pemeliharaan lapangan, update status WO, dan pencatatan pemakaian material part.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 shrink-0 mt-0.5">
+                    <Briefcase className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Manager</h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Monitoring ringkasan eksekutif, analisa performa MTTR/MTBF, dan laporan utilisasi aset.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -505,7 +510,7 @@ export const AuthView: React.FC = () => {
                   <Cpu className="w-4 h-4" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-300">Mechanical</span>
-                <span className="text-[10px] text-slate-500">HVAC & Fire Pump</span>
+                <span className="text-[10px] text-slate-500">HVAC & Pompa</span>
               </div>
               <div className="w-px h-8 bg-slate-800" />
               <div className="flex flex-col items-center">
@@ -513,7 +518,7 @@ export const AuthView: React.FC = () => {
                   <Zap className="w-4 h-4" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-300">Electrical</span>
-                <span className="text-[10px] text-slate-500">Genset & Panels</span>
+                <span className="text-[10px] text-slate-500">Genset & Panel</span>
               </div>
               <div className="w-px h-8 bg-slate-800" />
               <div className="flex flex-col items-center">
@@ -521,7 +526,7 @@ export const AuthView: React.FC = () => {
                   <Droplets className="w-4 h-4" />
                 </div>
                 <span className="text-[11px] font-medium text-slate-300">Plumbing</span>
-                <span className="text-[10px] text-slate-500">Booster & STP</span>
+                <span className="text-[10px] text-slate-500">Booster & IPAL</span>
               </div>
             </div>
           </div>

@@ -24,7 +24,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
     currentUser,
     currentView,
     setCurrentView,
-    switchUserRole,
     notifications,
     markNotificationAsRead,
     markAllNotificationsAsRead,
@@ -52,13 +51,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
     }
   };
 
-  const roles: { key: UserRole; label: string; icon: React.ReactNode; color: string }[] = [
-    { key: 'admin', label: 'Admin', icon: <Shield className="w-3.5 h-3.5" />, color: 'hover:border-rose-400 hover:text-rose-600' },
-    { key: 'supervisor', label: 'Supervisor', icon: <UserCheck className="w-3.5 h-3.5" />, color: 'hover:border-amber-400 hover:text-amber-600' },
-    { key: 'teknisi', label: 'Teknisi', icon: <Wrench className="w-3.5 h-3.5" />, color: 'hover:border-blue-400 hover:text-blue-600' },
-    { key: 'manager', label: 'Manager', icon: <Briefcase className="w-3.5 h-3.5" />, color: 'hover:border-purple-400 hover:text-purple-600' },
-  ];
-
   return (
     <header className="sticky top-0 z-30 h-16 bg-white/95 backdrop-blur-md border-b border-slate-200/90 px-4 sm:px-6 flex items-center justify-between shadow-xs">
       {/* Left: Mobile Toggle & Page Title */}
@@ -82,34 +74,39 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
         </div>
       </div>
 
-      {/* Right: Quick Role Switcher Bar & Actions */}
+      {/* Right: Authenticated User Info & Actions */}
       <div className="flex items-center gap-2 sm:gap-4">
-        {/* Quick Role Switcher Bar (Crucial for grading/testing 4 roles seamlessly) */}
-        <div className="hidden md:flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
-          <span className="text-[11px] font-semibold text-slate-600 px-2 flex items-center gap-1 font-mono uppercase">
-            <span>Role:</span>
-          </span>
-          <div className="flex items-center gap-1">
-            {roles.map((r) => {
-              const isActive = currentUser?.role === r.key;
-              return (
-                <button
-                  key={r.key}
-                  onClick={() => switchUserRole(r.key)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-medium transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-white text-slate-900 shadow-xs font-bold border border-slate-200/80 ring-1 ring-slate-400/20'
-                      : `text-slate-600 hover:bg-slate-200/60 ${r.color}`
-                  }`}
-                  title={`Beralih akun ke role ${r.label}`}
-                >
-                  {r.icon}
-                  <span>{r.label}</span>
-                </button>
-              );
-            })}
+        {/* Authenticated User Status Display */}
+        {currentUser && (
+          <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200/80">
+            <img
+              src={currentUser.avatar}
+              alt={currentUser.name}
+              className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-300"
+            />
+            <div className="text-left">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-slate-800 truncate max-w-[120px]">
+                  {currentUser.name}
+                </span>
+                <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded uppercase font-bold ${
+                  currentUser.role === 'admin'
+                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                    : currentUser.role === 'supervisor'
+                    ? 'bg-amber-100 text-amber-700 border border-amber-200'
+                    : currentUser.role === 'manager'
+                    ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                    : 'bg-blue-100 text-blue-700 border border-blue-200'
+                }`}>
+                  {currentUser.role}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-500 truncate max-w-[140px]">
+                {currentUser.company || 'PT DAHANA (Persero)'}
+              </p>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Notifications Button */}
         <div className="relative">

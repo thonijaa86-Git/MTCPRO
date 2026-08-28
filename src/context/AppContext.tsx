@@ -445,15 +445,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             });
 
             const mergedList = Array.from(userMap.values());
-            // If no currentUser is active or active is dummy, auto-set to the first active admin (e.g. edi.supriatna@dahana.id)
-            setCurrentUser((curr) => {
-              if (!curr || isDummyUser(curr)) {
-                const adminUser = mergedList.find((u) => u.role === 'admin' && (u.status || 'Aktif') === 'Aktif');
-                return adminUser || mergedList[0] || null;
-              }
-              return curr;
-            });
-
+            // Update users list without auto-assigning currentUser if user is logged out
             return mergedList;
           });
         }
@@ -516,38 +508,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Auth Operations
-  const login = (email: string, password?: string, role?: UserRole) => {
+  const login = (email: string, password?: string, role?: UserRole): boolean => {
     const cleanEmail = (email || '').trim().toLowerCase();
-    let foundUser = users.find((u) => u.email.toLowerCase().trim() === cleanEmail);
-    if (!foundUser && role) {
-      foundUser = users.find((u) => u.role === role && (u.status || 'Aktif') === 'Aktif');
-    }
-    if (foundUser) {
-      const isPending = (foundUser.status || '').toLowerCase().trim() === 'pending' || (foundUser.status || '').toLowerCase().trim() === 'menunggu approval';
-      const isRejected = (foundUser.status || '').toLowerCase().trim() === 'ditolak';
+    const cleanPassword = (password || '').trim();
 
-      if (isPending) {
-        showToast('warning', 'Akun Menunggu Persetujuan Admin', 'Pendaftaran akun Anda sedang menunggu verifikasi/approval oleh Administrator.');
-        return false;
-      }
-      if (isRejected) {
-        showToast('error', 'Akses Akun Ditolak', 'Pendaftaran akun Anda telah ditolak oleh Administrator.');
-        return false;
-      }
-      // Password validation if configured on the user profile
-      if (foundUser.password && password && foundUser.password.trim() !== '') {
-        if (foundUser.password !== password) {
-          showToast('error', 'Login Gagal', 'Kata sandi (password) yang Anda masukkan tidak sesuai.');
-          return false;
-        }
-      }
-      setCurrentUser(foundUser);
-      showToast('success', `Selamat Datang, ${foundUser.name}`, `Login berhasil sebagai ${foundUser.role.toUpperCase()}`);
-      addLog('Login Pengguna', 'user', foundUser.id, `User ${foundUser.name} (${foundUser.role}) berhasil masuk.`);
-      return true;
+    if (!cleanEmail) {
+      showToast('error', 'Login Gagal', 'Alamat email wajib diisi.');
+      return false;
     }
-    showToast('error', 'Login Gagal', 'Email tidak terdaftar pada sistem MTCPRO.');
-    return false;
+    if (!cleanPassword) {
+      showToast('error', 'Login Gagal', 'Kata sandi (password) wajib diisi.');
+      return false;
+    }
+
+    const foundUser = users.find((u) => u.email.toLowerCase().trim() === cleanEmail);
+    if (!foundUser) {
+      showToast('error', 'Login Gagal', 'Email tidak terdaftar pada sistem MTCPRO. Pastikan email sudah benar atau daftar akun baru.');
+      return false;
+    }
+
+    const isPending = (foundUser.status || '').toLowerCase().trim() === 'pending' || (foundUser.status || '').toLowerCase().trim() === 'menunggu approval' || (foundUser.status || '').toLowerCase().trim() === 'menunggu persetujuan';
+    const isRejected = (foundUser.status || '').toLowerCase().trim() === 'ditolak';
+
+    if (isPending) {
+      showToast('warning', 'Akun Menunggu Persetujuan', 'Pendaftaran akun Anda sedang menunggu verifikasi dan persetujuan (approval) oleh Administrator.');
+      return false;
+    }
+    if (isRejected) {
+      showToast('error', 'Akses Ditolak', 'Akun ini telah dinonaktifkan atau ditolak oleh Administrator.');
+      return false;
+    }
+
+    // Strict Password Validation
+    if (foundUser.password && foundUser.password.trim() !== '') {
+      if (foundUser.password !== cleanPassword) {
+        showToast('error', 'Login Gagal', 'Kata sandi yang Anda masukkan tidak sesuai. Silakan periksa kembali.');
+        return false;
+      }
+    } else {
+      // If legacy profile had empty password, save this initial password
+      foundUser.password = cleanPassword;
+      if (isSupabaseConfigured()) {
+        supabaseService.updateProfile(foundUser.id, { password: cleanPassword }).catch(() => {});
+      }
+    }
+
+    setCurrentUser(foundUser);
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(foundUser));
+    showToast('success', `Selamat Datang, ${foundUser.name}`, `Login berhasil sebagai ${foundUser.role.toUpperCase()}`);
+    addLog('Login Pengguna', 'user', foundUser.id, `User ${foundUser.name} (${foundUser.role}) berhasil masuk.`);
+    return true;
   };
 
   const register = async (
@@ -666,6 +676,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       addLog('Logout Pengguna', 'user', currentUser.id, `User ${currentUser.name} telah keluar.`);
     }
     setCurrentUser(null);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     showToast('info', 'Sign Out Berhasil', 'Anda telah keluar dari sesi MTCPRO.');
   };
 
