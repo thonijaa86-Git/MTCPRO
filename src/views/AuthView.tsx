@@ -439,24 +439,26 @@ export const AuthView: React.FC = () => {
             )}
           </div>
 
-          {/* Right Column: Official MTCPRO Brand Showcase */}
+          {/* Right Column: Official MTCPRO Brand Showcase (Transparent & Seamless) */}
           <div className="lg:col-span-5 flex flex-col justify-center">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
-              {/* Subtle background industrial radial glow */}
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1e3a8a_0,transparent_70%)] opacity-25 group-hover:opacity-40 transition-opacity pointer-events-none" />
+            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
+              {/* Dynamic ambient radial glow */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1d4ed8_0,transparent_65%)] opacity-20 group-hover:opacity-35 transition-opacity duration-500 pointer-events-none" />
+              <div className="absolute -top-12 -right-12 w-44 h-44 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 w-44 h-44 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
               
-              {/* Official MTCPRO Logo */}
-              <div className="relative z-10 w-full max-w-[340px] p-4 bg-white/95 rounded-2xl shadow-xl border border-slate-700/50 mb-6 flex items-center justify-center">
+              {/* Official Transparent MTCPRO Logo */}
+              <div className="relative z-10 w-full max-w-[320px] mb-6 flex items-center justify-center">
                 <img
                   src="/logo.png"
                   alt="MTCPRO Maintenance Management System"
-                  className="w-full h-auto object-contain max-h-[300px] hover:scale-102 transition-transform duration-300"
+                  className="w-full h-auto object-contain max-h-[300px] drop-shadow-[0_15px_30px_rgba(0,0,0,0.6)] hover:scale-105 transition-transform duration-300 filter"
                 />
               </div>
 
               {/* Company Branding & Subtitle */}
               <div className="relative z-10 space-y-2">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950 border border-slate-800 text-[11px] font-mono font-semibold text-blue-400">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950/90 border border-slate-800 text-[11px] font-mono font-semibold text-blue-400 shadow-inner">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                   <span>PT DAHANA (Persero)</span>
                 </div>

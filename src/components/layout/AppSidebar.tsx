@@ -115,8 +115,8 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
         {/* Brand Header */}
         <div className="h-16 px-6 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/40">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white shadow-lg shadow-blue-500/20 font-mono font-bold text-lg tracking-wider">
-              M
+            <div className="w-10 h-10 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-center p-1 shadow-lg shadow-blue-500/10">
+              <img src="/logo.png" alt="MTCPRO" className="w-full h-full object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
