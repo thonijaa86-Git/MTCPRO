@@ -38,6 +38,45 @@ export const ASSET_CATEGORIES: MepCategory[] = [
   'Landscape'
 ];
 
+export const getConditionBadge = (condition?: AssetCondition | string) => {
+  switch (condition) {
+    case 'Sangat Baik':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          <span>Sangat Baik</span>
+        </span>
+      );
+    case 'Baik':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+          <span>Baik</span>
+        </span>
+      );
+    case 'Perlu Perhatian':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          <span>Perlu Perhatian</span>
+        </span>
+      );
+    case 'Rusak':
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse"></span>
+          <span>Rusak</span>
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+          <span>{condition || 'Baik'}</span>
+        </span>
+      );
+  }
+};
+
 export const AssetsView: React.FC = () => {
   const {
     currentUser,
@@ -133,14 +172,14 @@ export const AssetsView: React.FC = () => {
     const count = assets.length + 1;
     setFormData({
       assetTag: `AST-MEP-${count.toString().padStart(3, '0')}`,
-      location: 'Basement 1 — Ruang Mesin Utama',
+      location: '',
       category: 'HVAC',
       name: '',
       specification: '',
-      manufactureYear: (currentYear - 1).toString(),
-      installYear: currentYear.toString(),
+      manufactureYear: '',
+      installYear: '',
       status: 'Operasional',
-      condition: 'Sangat Baik',
+      condition: 'Baik',
       notes: ''
     });
     setIsAddModalOpen(true);
@@ -168,18 +207,22 @@ export const AssetsView: React.FC = () => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.assetTag.trim() || !formData.location.trim()) return;
 
+    const thisYear = new Date().getFullYear().toString();
+    const finalInstallYear = formData.installYear.trim() || thisYear;
+    const finalManufactureYear = formData.manufactureYear.trim() || thisYear;
+
     addAsset({
       assetTag: formData.assetTag,
       name: formData.name,
       category: formData.category,
       location: formData.location,
       specification: formData.specification,
-      manufactureYear: formData.manufactureYear,
-      installYear: formData.installYear,
+      manufactureYear: finalManufactureYear,
+      installYear: finalInstallYear,
       status: formData.status,
       condition: formData.condition,
       notes: formData.notes,
-      installDate: `${formData.installYear}-01-01`,
+      installDate: `${finalInstallYear}-01-01`,
       lastMaintenance: new Date().toISOString().substring(0, 10),
       nextMaintenance: new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10)
     });
@@ -213,11 +256,8 @@ export const AssetsView: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Cpu className="w-5 h-5 text-blue-600" />
-            <span>Pengelolaan Aset MEP & Fasilitas</span>
+            <span>Pengelolaan Aset</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Inventaris komprehensif sistem Mechanical, Electrical, Plumbing, dan Fasilitas Gedung
-          </p>
         </div>
 
         {canManage && (
@@ -324,7 +364,7 @@ export const AssetsView: React.FC = () => {
       <div className="industrial-panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+            <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold">
               <tr>
                 <th className="px-3 py-3 w-10 text-center">
                   <input
@@ -343,13 +383,14 @@ export const AssetsView: React.FC = () => {
                 <th className="px-4 py-3 text-center">Thn Pembuatan</th>
                 <th className="px-4 py-3 text-center">Thn Instalasi</th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Kondisi Fisik</th>
                 <th className="px-4 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {filteredAssets.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="text-center py-12 text-slate-400">
+                  <td colSpan={11} className="text-center py-12 text-slate-400">
                     Tidak ada aset yang cocok dengan kriteria pencarian.
                   </td>
                 </tr>
@@ -426,6 +467,11 @@ export const AssetsView: React.FC = () => {
                         <StatusBadge status={asset.status} />
                       </td>
 
+                      {/* Kondisi Fisik */}
+                      <td className="px-4 py-3.5 whitespace-nowrap">
+                        {getConditionBadge(asset.condition)}
+                      </td>
+
                       {/* Aksi: Lihat, Edit, Delete */}
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
@@ -482,11 +528,17 @@ export const AssetsView: React.FC = () => {
         >
           <div className="space-y-6 text-xs">
             {/* Top Stats Banner */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 border border-slate-200">
               <div>
                 <span className="text-[10px] uppercase font-bold text-slate-500">Status Operasi</span>
                 <div className="mt-1">
                   <StatusBadge status={selectedAssetForDetail.status} size="md" />
+                </div>
+              </div>
+              <div>
+                <span className="text-[10px] uppercase font-bold text-slate-500">Kondisi Fisik</span>
+                <div className="mt-1">
+                  {getConditionBadge(selectedAssetForDetail.condition)}
                 </div>
               </div>
               <div>

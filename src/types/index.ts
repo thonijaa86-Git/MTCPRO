@@ -46,10 +46,14 @@ export interface UserProfile {
   role: UserRole;
   avatar: string;
   phone?: string;
+  password?: string; // Kata sandi tersimpan untuk otentikasi
+  company?: string; // Nama Perusahaan
+  position?: string; // Jabatan
   specialization?: string;
   department?: string;
   joinedDate?: string;
   status?: 'Aktif' | 'Pending' | 'Ditolak';
+  customMenuKeys?: string[]; // Hak akses menu kustom spesifik untuk user ini
 }
 
 export interface Asset {

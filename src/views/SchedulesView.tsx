@@ -124,8 +124,8 @@ export const SchedulesView: React.FC = () => {
       assignedType: 'internal',
       assignedToId: techUsers[0]?.id || '',
       vendorId: vendors[0]?.id || '',
-      estimatedDuration: '4 Jam',
-      checklistText: '1. Pembersihan fisik & saringan filter\n2. Pengecekan parameter tekanan & suhu\n3. Pengujian proteksi switch otomatis'
+      estimatedDuration: '',
+      checklistText: ''
     });
     setIsAddModalOpen(true);
   };
@@ -219,9 +219,6 @@ export const SchedulesView: React.FC = () => {
             <CalendarClock className="w-5 h-5 text-blue-600" />
             <span>Maintenance Schedule (Preventive PM)</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Otomatisasi jadwal pemeliharaan berkala untuk menjaga keandalan mesin MEP
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -341,7 +338,7 @@ export const SchedulesView: React.FC = () => {
         <div className="industrial-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+              <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="px-3 py-3 w-10 text-center">
                     <input
@@ -767,7 +764,7 @@ export const SchedulesView: React.FC = () => {
                 className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
               >
                 <option value="internal">Tim Teknisi Internal</option>
-                <option value="vendor">Vendor Rekanan Spesialis</option>
+                <option value="vendor">Perusahaan / Mitra Spesialis</option>
               </select>
             </div>
 
@@ -789,7 +786,7 @@ export const SchedulesView: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Pilih Vendor Rekanan</label>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Pilih Perusahaan Pelaksana</label>
                   <select
                     value={formSchedule.vendorId}
                     onChange={(e) => setFormSchedule({ ...formSchedule, vendorId: e.target.value })}
@@ -814,6 +811,7 @@ export const SchedulesView: React.FC = () => {
                 value={formSchedule.checklistText}
                 onChange={(e) => setFormSchedule({ ...formSchedule, checklistText: e.target.value })}
                 className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
+                placeholder="e.g. 1. Pembersihan fisik & saringan filter&#10;2. Pengecekan parameter tekanan & suhu&#10;3. Pengujian proteksi switch otomatis"
               />
             </div>
           </div>

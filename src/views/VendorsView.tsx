@@ -84,7 +84,7 @@ export const VendorsView: React.FC = () => {
 
   const handleBulkDelete = () => {
     if (selectedVendorIds.length === 0) return;
-    if (window.confirm(`Apakah Anda yakin ingin menghapus ${selectedVendorIds.length} vendor terpilih?`)) {
+    if (window.confirm(`Apakah Anda yakin ingin menghapus ${selectedVendorIds.length} perusahaan terpilih?`)) {
       deleteBulkVendors(selectedVendorIds);
       setSelectedVendorIds([]);
     }
@@ -92,7 +92,7 @@ export const VendorsView: React.FC = () => {
 
   const handleDeleteSingle = (v: Vendor, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm(`Hapus vendor ${v.name}?`)) {
+    if (window.confirm(`Hapus perusahaan ${v.name}?`)) {
       deleteVendor(v.id);
       setSelectedVendorIds((prev) => prev.filter((id) => id !== v.id));
     }
@@ -103,11 +103,11 @@ export const VendorsView: React.FC = () => {
       name: '',
       contactPerson: '',
       email: '',
-      phone: '+62 21 ',
-      specializationText: 'HVAC, Fire Suppression, Piping',
+      phone: '',
+      specializationText: '',
       contractStatus: 'Aktif',
       rating: 4.8,
-      address: 'Jakarta, Indonesia',
+      address: '',
       contractExpiry: new Date(Date.now() + 365 * 86400000).toISOString().substring(0, 10)
     });
     setIsAddModalOpen(true);
@@ -177,11 +177,8 @@ export const VendorsView: React.FC = () => {
         <div>
           <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <Building2 className="w-5 h-5 text-blue-600" />
-            <span>Pengelolaan Vendor Rekanan MEP</span>
+            <span>Pengelolaan Perusahaan</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Kemitraan spesialis pihak ketiga, kontrak SLA, dan kontak darurat teknis
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -217,7 +214,7 @@ export const VendorsView: React.FC = () => {
               className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Tambah Vendor Baru</span>
+              <span>Tambah Perusahaan Baru</span>
             </button>
           )}
         </div>
@@ -230,7 +227,7 @@ export const VendorsView: React.FC = () => {
             <span className="font-mono font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded border border-rose-300">
               {selectedVendorIds.length}
             </span>
-            <span className="font-semibold">Vendor terpilih</span>
+            <span className="font-semibold">Perusahaan terpilih</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -247,7 +244,7 @@ export const VendorsView: React.FC = () => {
               className="px-3.5 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold flex items-center gap-1.5 shadow-sm shadow-rose-600/30 cursor-pointer transition-colors"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Hapus {selectedVendorIds.length} Vendor Terpilih</span>
+              <span>Hapus {selectedVendorIds.length} Perusahaan Terpilih</span>
             </button>
           </div>
         </div>
@@ -259,7 +256,7 @@ export const VendorsView: React.FC = () => {
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
-            placeholder="Cari nama vendor rekanan, kontak PIC, atau spesialisasi..."
+            placeholder="Cari nama perusahaan, kontak PIC, atau spesialisasi..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
@@ -297,7 +294,7 @@ export const VendorsView: React.FC = () => {
         <div className="industrial-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+              <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="px-3 py-3 w-10 text-center">
                     <input
@@ -305,7 +302,7 @@ export const VendorsView: React.FC = () => {
                       checked={selectedVendorIds.length > 0 && selectedVendorIds.length === filteredVendors.length}
                       onChange={handleSelectAll}
                       className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                      title="Pilih Semua Vendor"
+                      title="Pilih Semua Perusahaan"
                     />
                   </th>
                   <th className="px-4 py-3">Nama Perusahaan</th>
@@ -322,7 +319,7 @@ export const VendorsView: React.FC = () => {
                 {filteredVendors.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="text-center py-12 text-slate-400">
-                      Tidak ada vendor yang cocok dengan kriteria pencarian.
+                      Tidak ada perusahaan yang cocok dengan kriteria pencarian.
                     </td>
                   </tr>
                 ) : (
@@ -412,14 +409,14 @@ export const VendorsView: React.FC = () => {
                                 <button
                                   onClick={(e) => handleOpenEdit(v, e)}
                                   className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                                  title="Edit Vendor"
+                                  title="Edit Data Perusahaan"
                                 >
                                   <Edit2 className="w-4 h-4" />
                                 </button>
                                 <button
                                   onClick={(e) => handleDeleteSingle(v, e)}
                                   className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                                  title="Hapus Vendor"
+                                  title="Hapus Data Perusahaan"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -538,14 +535,14 @@ export const VendorsView: React.FC = () => {
                         <button
                           onClick={(e) => handleOpenEdit(v, e)}
                           className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                          title="Edit Vendor"
+                          title="Edit Data Perusahaan"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={(e) => handleDeleteSingle(v, e)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                          title="Hapus Vendor"
+                          title="Hapus Data Perusahaan"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -565,7 +562,6 @@ export const VendorsView: React.FC = () => {
           isOpen={!!selectedVendorForDetail}
           onClose={() => setSelectedVendorForDetail(null)}
           title={selectedVendorForDetail.name}
-          subtitle={`PIC: ${selectedVendorForDetail.contactPerson} • Status: ${selectedVendorForDetail.contractStatus}`}
           maxWidth="lg"
         >
           <div className="space-y-4 text-xs">
@@ -575,7 +571,7 @@ export const VendorsView: React.FC = () => {
                 <p className="font-bold text-emerald-700 text-xs mt-0.5">{selectedVendorForDetail.contractStatus}</p>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase block">Rating Vendor</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase block">Rating / Reputasi</span>
                 <p className="font-bold text-amber-600 text-xs mt-0.5 flex items-center gap-1 font-mono">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                   <span>{selectedVendorForDetail.rating} / 5.0</span>
@@ -625,7 +621,7 @@ export const VendorsView: React.FC = () => {
         </Modal>
       )}
 
-      {/* Add / Edit Vendor Modal */}
+      {/* Add / Edit Perusahaan Modal */}
       <Modal
         isOpen={isAddModalOpen || isEditModalOpen}
         onClose={() => {
@@ -633,20 +629,19 @@ export const VendorsView: React.FC = () => {
           setIsEditModalOpen(false);
           setEditingVendor(null);
         }}
-        title={isAddModalOpen ? 'Tambah Vendor Mitra Baru' : `Edit Data Vendor: ${editingVendor?.name}`}
-        subtitle="Informasi kontak, spesialisasi MEP dan masa berlaku kontrak"
+        title={isAddModalOpen ? 'Tambah Perusahaan Baru' : `Edit Data Perusahaan: ${editingVendor?.name}`}
         maxWidth="lg"
       >
         <form onSubmit={isAddModalOpen ? handleSaveAdd : handleSaveEdit} className="space-y-3 text-xs">
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Perusahaan Vendor (Wajib)</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Perusahaan (Wajib)</label>
             <input
               type="text"
               required
               value={formVendor.name}
               onChange={(e) => setFormVendor({ ...formVendor, name: e.target.value })}
               className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
-              placeholder="e.g. PT Schneider Electric Partner Service"
+              placeholder="e.g. PT DAHANA (Persero) / Rekanan Service"
             />
           </div>
 
@@ -677,20 +672,20 @@ export const VendorsView: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Resmi Vendor</label>
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Resmi</label>
             <input
               type="email"
               required
               value={formVendor.email}
               onChange={(e) => setFormVendor({ ...formVendor, email: e.target.value })}
               className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
-              placeholder="service@vendor.co.id"
+              placeholder="kontak@perusahaan.co.id"
             />
           </div>
 
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-              Spesialisasi Keahlian (Pisahkan dengan koma)
+              Spesialisasi Keahlian / Lingkup Kerja (Pisahkan dengan koma)
             </label>
             <input
               type="text"
@@ -698,7 +693,7 @@ export const VendorsView: React.FC = () => {
               value={formVendor.specializationText}
               onChange={(e) => setFormVendor({ ...formVendor, specializationText: e.target.value })}
               className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 focus:bg-white text-xs"
-              placeholder="Chiller Water Cooled, Trafo 20kV, Fire Hydrant"
+              placeholder="Chiller Water Cooled, Trafo 20kV, Fire Hydrant, Internal MEP"
             />
           </div>
 
@@ -755,7 +750,7 @@ export const VendorsView: React.FC = () => {
               type="submit"
               className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
-              Simpan Data Vendor
+              Simpan Data Perusahaan
             </button>
           </div>
         </form>

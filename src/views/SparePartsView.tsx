@@ -132,13 +132,13 @@ export const SparePartsView: React.FC = () => {
       sku: `PRT-MEC-${count.toString().padStart(2, '0')}`,
       name: '',
       category: 'HVAC',
-      stock: 10,
+      stock: 0,
       minThreshold: 5,
       unit: 'Pcs',
-      unitCost: 250000,
-      locationRack: 'Rak M-03',
-      supplier: 'PT Supplier MEP Nasional',
-      compatibleAssetsText: 'Centrifugal Chiller, AHU'
+      unitCost: 0,
+      locationRack: '',
+      supplier: '',
+      compatibleAssetsText: ''
     });
     setIsAddModalOpen(true);
   };
@@ -212,9 +212,6 @@ export const SparePartsView: React.FC = () => {
             <Boxes className="w-5 h-5 text-blue-600" />
             <span>Inventaris & Stok Spare Part MEP</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Manajemen persediaan suku cadang, threshold minimum, dan reorder point
-          </p>
         </div>
 
         {canManage && (
@@ -321,7 +318,7 @@ export const SparePartsView: React.FC = () => {
       <div className="industrial-panel overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+            <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold">
               <tr>
                 <th className="px-3 py-3 w-10 text-center">
                   <input

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { UserProfile, UserRole } from '../types';
 import { Modal } from '../components/common/Modal';
@@ -25,13 +25,21 @@ import {
   X,
   ShieldAlert,
   AlertTriangle,
-  UserPlus
+  UserPlus,
+  Camera,
+  Upload,
+  Building2,
+  RotateCw,
+  Image as ImageIcon,
+  Lock,
+  EyeOff
 } from 'lucide-react';
 
 export const TeamView: React.FC = () => {
   const {
     currentUser,
     users,
+    vendors,
     workOrders,
     updateUserRole,
     addUser,
@@ -57,7 +65,7 @@ export const TeamView: React.FC = () => {
 
   // Modals
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [isEditRoleModalOpen, setIsEditRoleModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserProfile | null>(null);
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [selectedUserForDetail, setSelectedUserForDetail] = useState<UserProfile | null>(null);
   const [targetUser, setTargetUser] = useState<UserProfile | null>(null);
@@ -65,38 +73,153 @@ export const TeamView: React.FC = () => {
   // Edit / Approve Role State
   const [newRoleSelection, setNewRoleSelection] = useState<UserRole>('teknisi');
   const [newDepartment, setNewDepartment] = useState('Mechanical & Electrical Maintenance');
+  const [newCompany, setNewCompany] = useState('PT DAHANA (Persero)');
+  const [newPosition, setNewPosition] = useState('MEP Specialist');
 
-  // Add User Form
+  // Add/Edit User Form State
+  const [showFormPassword, setShowFormPassword] = useState(false);
+  const [showDetailPassword, setShowDetailPassword] = useState(false);
   const [formUser, setFormUser] = useState({
     name: '',
+    phone: '',
     email: '',
+    company: 'PT DAHANA (Persero)',
+    position: 'MEP Specialist',
     role: 'teknisi' as UserRole,
-    phone: '+62 812-0000-0000',
-    specialization: 'MEP Specialist',
-    department: 'Maintenance & Operations'
+    avatar: '',
+    password: ''
   });
+
+  // Camera & Photo Upload State
+  const [isCameraActive, setIsCameraActive] = useState(false);
+  const [cameraFacingMode, setCameraFacingMode] = useState<'user' | 'environment'>('user');
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraFallbackInputRef = useRef<HTMLInputElement>(null);
+
+  // Stop camera stream when component unmounts or modal closes
+  useEffect(() => {
+    return () => {
+      if (cameraStream) {
+        cameraStream.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, [cameraStream]);
 
   const filteredUsers = users.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (u.phone && u.phone.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.company && u.company.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      (u.position && u.position.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (u.specialization && u.specialization.toLowerCase().includes(searchQuery.toLowerCase()));
 
     const matchesRole =
       selectedRoleFilter === 'ALL' || u.role === selectedRoleFilter;
 
-    const userStatus = u.status || 'Aktif';
+    const isPending = (u.status || '').toLowerCase().trim() === 'pending' || (u.status || '').toLowerCase().trim() === 'menunggu approval';
+    const isRejected = (u.status || '').toLowerCase().trim() === 'ditolak';
+    const userStatus = isPending ? 'Pending' : (isRejected ? 'Ditolak' : 'Aktif');
+
     const matchesStatus =
       selectedStatusFilter === 'ALL' || userStatus === selectedStatusFilter;
 
     return matchesSearch && matchesRole && matchesStatus;
   });
 
+  // Helper check
+  const isUserPending = (u: UserProfile) => {
+    const s = (u.status || '').toLowerCase().trim();
+    return s === 'pending' || s === 'menunggu approval' || s === 'menunggu persetujuan';
+  };
+  const isUserRejected = (u: UserProfile) => (u.status || '').toLowerCase().trim() === 'ditolak';
+  const isUserActive = (u: UserProfile) => !isUserPending(u) && !isUserRejected(u);
+
   // Counters
-  const pendingUsers = users.filter((u) => u.status === 'Pending');
-  const activeUsers = users.filter((u) => (u.status || 'Aktif') === 'Aktif');
-  const rejectedUsers = users.filter((u) => u.status === 'Ditolak');
-  const technicianUsers = users.filter((u) => u.role === 'teknisi' && (u.status || 'Aktif') === 'Aktif');
+  const pendingUsers = users.filter(isUserPending);
+  const activeUsers = users.filter(isUserActive);
+  const rejectedUsers = users.filter(isUserRejected);
+  const technicianUsers = users.filter((u) => u.role === 'teknisi' && isUserActive(u));
+
+  // Camera & Photo Handlers
+  const startCamera = async (mode: 'user' | 'environment' = cameraFacingMode) => {
+    setIsCameraActive(true);
+    setCameraError(null);
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+    }
+    try {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Webcam API tidak didukung di browser ini.');
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode, width: { ideal: 640 }, height: { ideal: 640 } },
+        audio: false
+      });
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+    } catch (err: any) {
+      console.warn('Camera access error:', err);
+      setCameraError('Tidak dapat mengakses kamera web secara langsung. Anda dapat menggunakan tombol kamera/file di bawah.');
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraActive(false);
+    setCameraError(null);
+  };
+
+  const toggleFacingMode = () => {
+    const nextMode = cameraFacingMode === 'user' ? 'environment' : 'user';
+    setCameraFacingMode(nextMode);
+    startCamera(nextMode);
+  };
+
+  const capturePhoto = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const size = Math.min(video.videoWidth || 480, video.videoHeight || 480);
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        const startX = ((video.videoWidth || 480) - size) / 2;
+        const startY = ((video.videoHeight || 480) - size) / 2;
+        ctx.drawImage(video, startX, startY, size, size, 0, 0, size, size);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setFormUser((prev) => ({ ...prev, avatar: dataUrl }));
+        stopCamera();
+      }
+    }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        if (loadEvt.target?.result) {
+          setFormUser((prev) => ({
+            ...prev,
+            avatar: loadEvt.target!.result as string
+          }));
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
 
   // Multi-Select Handlers
   const handleSelectAll = () => {
@@ -135,12 +258,14 @@ export const TeamView: React.FC = () => {
     setTargetUser(u);
     setNewRoleSelection(u.role || 'teknisi');
     setNewDepartment(u.department || 'Mechanical & Electrical Maintenance');
+    setNewCompany(u.company || (vendors[0]?.name || 'PT DAHANA (Persero)'));
+    setNewPosition(u.position || u.specialization || 'MEP Specialist');
     setIsApproveModalOpen(true);
   };
 
   const handleConfirmApproval = () => {
     if (targetUser) {
-      approveUser(targetUser.id, newRoleSelection, newDepartment);
+      approveUser(targetUser.id, newRoleSelection, newDepartment, newCompany, newPosition);
       setIsApproveModalOpen(false);
       setTargetUser(null);
     }
@@ -153,42 +278,90 @@ export const TeamView: React.FC = () => {
     }
   };
 
-  const handleOpenEditRole = (u: UserProfile, e?: React.MouseEvent) => {
+  const handleOpenAdd = () => {
+    setEditingUser(null);
+    setShowFormPassword(false);
+    setFormUser({
+      name: '',
+      phone: '',
+      email: '',
+      company: vendors[0]?.name || 'PT DAHANA (Persero)',
+      position: '',
+      role: 'teknisi',
+      avatar: '',
+      password: ''
+    });
+    setIsAddUserModalOpen(true);
+  };
+
+  const handleOpenEdit = (u: UserProfile, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setTargetUser(u);
-    setNewRoleSelection(u.role);
-    setNewDepartment(u.department || 'Maintenance & Operations');
-    setIsEditRoleModalOpen(true);
+    setEditingUser(u);
+    setShowFormPassword(false);
+    setFormUser({
+      name: u.name,
+      phone: u.phone || '',
+      email: u.email,
+      company: u.company || u.department || (vendors[0]?.name || 'PT DAHANA (Persero)'),
+      position: u.position || u.specialization || 'MEP Specialist',
+      role: u.role,
+      avatar: u.avatar || '',
+      password: u.password || ''
+    });
+    setIsAddUserModalOpen(true);
   };
 
-  const handleSaveRole = () => {
-    if (targetUser) {
-      updateUserRole(targetUser.id, newRoleSelection);
-      if (newDepartment !== targetUser.department) {
-        updateUser(targetUser.id, { department: newDepartment });
-      }
-      setIsEditRoleModalOpen(false);
-      setTargetUser(null);
-    }
-  };
-
-  const handleSaveAdd = (e: React.FormEvent) => {
+  const handleSaveForm = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formUser.name.trim() || !formUser.email.trim()) return;
 
-    addUser({
-      name: formUser.name,
-      email: formUser.email,
-      role: formUser.role,
-      avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      phone: formUser.phone,
-      specialization: formUser.specialization,
-      department: formUser.department,
-      joinedDate: new Date().toISOString().substring(0, 10),
-      status: 'Aktif'
+    const defaultAvatar = `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`;
+
+    if (editingUser) {
+      updateUser(editingUser.id, {
+        name: formUser.name.trim(),
+        phone: formUser.phone.trim(),
+        email: formUser.email.trim(),
+        company: formUser.company.trim(),
+        position: formUser.position.trim(),
+        role: formUser.role,
+        avatar: formUser.avatar || defaultAvatar,
+        specialization: formUser.position.trim(),
+        department: formUser.company.trim(),
+        password: formUser.password ? formUser.password.trim() : (editingUser.password || '')
+      });
+      updateUserRole(editingUser.id, formUser.role);
+    } else {
+      addUser({
+        name: formUser.name.trim(),
+        phone: formUser.phone.trim() || '+62 812-0000-0000',
+        email: formUser.email.trim(),
+        company: formUser.company.trim() || 'PT DAHANA (Persero)',
+        position: formUser.position.trim() || 'MEP Specialist',
+        role: formUser.role,
+        avatar: formUser.avatar || defaultAvatar,
+        specialization: formUser.position.trim() || 'MEP Specialist',
+        department: formUser.company.trim() || 'Maintenance & Operations',
+        joinedDate: new Date().toISOString().substring(0, 10),
+        status: 'Aktif',
+        password: formUser.password ? formUser.password.trim() : '123456'
+      });
+    }
+
+    // Reset Form
+    setFormUser({
+      name: '',
+      phone: '',
+      email: '',
+      company: vendors[0]?.name || 'PT DAHANA (Persero)',
+      position: 'MEP Specialist',
+      role: 'teknisi',
+      avatar: '',
+      password: ''
     });
 
     setIsAddUserModalOpen(false);
+    setEditingUser(null);
   };
 
   const getRoleIcon = (userRole: UserRole) => {
@@ -244,9 +417,6 @@ export const TeamView: React.FC = () => {
             <Users2 className="w-5 h-5 text-blue-600" />
             <span>Manajemen Tim & Penentuan Role Pengguna</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Daftar personil, verifikasi persetujuan pendaftaran akun baru, dan konfigurasi hak akses
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -278,7 +448,7 @@ export const TeamView: React.FC = () => {
 
           {canManage && (
             <button
-              onClick={() => setIsAddUserModalOpen(true)}
+              onClick={handleOpenAdd}
               className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
@@ -287,6 +457,47 @@ export const TeamView: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Prominent Pending Approval Alert Banner for Admin */}
+      {pendingUsers.length > 0 && isAdmin && (
+        <div className="p-4 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-50/40 border-2 border-amber-400/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md shadow-amber-500/10 animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-amber-500/30">
+              <Clock className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs sm:text-sm font-bold text-amber-950">
+                  Ada {pendingUsers.length} Pengajuan Pendaftaran User Baru Menunggu Persetujuan
+                </h4>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500 text-white animate-pulse">
+                  Action Needed
+                </span>
+              </div>
+              <p className="text-[11px] text-amber-900 mt-0.5">
+                Pengguna baru telah mendaftar akun dan sedang menunggu Administrator untuk menyetujui (approval) serta menentukan peran & hak aksesnya.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-end">
+            <button
+              onClick={() => setSelectedStatusFilter('Pending')}
+              className="px-3.5 py-2 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl font-bold text-xs shadow-xs cursor-pointer transition-all"
+            >
+              Filter Pengajuan ({pendingUsers.length})
+            </button>
+            {pendingUsers[0] && (
+              <button
+                onClick={(e) => handleOpenApproveModal(pendingUsers[0], e)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md shadow-emerald-600/30 cursor-pointer transition-all flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Setujui Langsung</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* KPI Stats & Status Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
@@ -445,7 +656,7 @@ export const TeamView: React.FC = () => {
         <div className="industrial-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+              <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="px-3 py-3 w-10 text-center">
                     <input
@@ -458,7 +669,7 @@ export const TeamView: React.FC = () => {
                   </th>
                   <th className="px-4 py-3">Nama & Profil Personil</th>
                   <th className="px-4 py-3">Kontak & Email</th>
-                  <th className="px-4 py-3">Spesialisasi & Departemen</th>
+                  <th className="px-4 py-3">Perusahaan & Jabatan</th>
                   <th className="px-4 py-3">Peran (Role)</th>
                   <th className="px-4 py-3">Status Akun</th>
                   <th className="px-4 py-3">Terdaftar</th>
@@ -476,7 +687,7 @@ export const TeamView: React.FC = () => {
                   filteredUsers.map((u) => {
                     const isSelected = selectedUserIds.includes(u.id);
                     const isCurrent = currentUser?.id === u.id;
-                    const isPending = u.status === 'Pending';
+                    const isPending = isUserPending(u);
                     const activeTasks = workOrders.filter(
                       (w) => w.assignedToId === u.id && (w.status === 'Open' || w.status === 'Proses')
                     ).length;
@@ -524,9 +735,12 @@ export const TeamView: React.FC = () => {
                           <div className="text-[11px] font-mono text-slate-500">{u.phone || '-'}</div>
                         </td>
 
-                        <td className="px-4 py-3.5 max-w-[180px]">
-                          <div className="font-semibold text-slate-800 truncate">{u.specialization || 'MEP Specialist'}</div>
-                          <div className="text-[11px] text-slate-500 truncate">{u.department || 'Maintenance Dept.'}</div>
+                        <td className="px-4 py-3.5 max-w-[200px]">
+                          <div className="font-semibold text-slate-800 truncate">{u.position || u.specialization || 'MEP Specialist'}</div>
+                          <div className="text-[11px] text-slate-500 truncate flex items-center gap-1 mt-0.5">
+                            <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                            <span>{u.company || u.department || 'PT DAHANA (Persero)'}</span>
+                          </div>
                         </td>
 
                         <td className="px-4 py-3.5 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
@@ -595,12 +809,12 @@ export const TeamView: React.FC = () => {
                               <Eye className="w-4 h-4" />
                             </button>
 
-                            {/* Edit Role / Dept */}
+                            {/* Edit Data Personil */}
                             {isAdmin && (
                               <button
-                                onClick={(e) => handleOpenEditRole(u, e)}
+                                onClick={(e) => handleOpenEdit(u, e)}
                                 className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                                title="Ubah Role & Departemen"
+                                title="Edit Data Personil"
                               >
                                 <Edit2 className="w-4 h-4" />
                               </button>
@@ -643,7 +857,7 @@ export const TeamView: React.FC = () => {
           {filteredUsers.map((u) => {
             const isSelected = selectedUserIds.includes(u.id);
             const isCurrent = currentUser?.id === u.id;
-            const isPending = u.status === 'Pending';
+            const isPending = isUserPending(u);
             const activeTasks = workOrders.filter(
               (w) => w.assignedToId === u.id && (w.status === 'Open' || w.status === 'Proses')
             ).length;
@@ -703,9 +917,12 @@ export const TeamView: React.FC = () => {
 
                   <div className="space-y-1.5 text-xs text-slate-600 pt-2 border-t border-slate-100">
                     <div>
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Keahlian & Dept</span>
-                      <p className="font-semibold text-slate-800 line-clamp-1">{u.specialization || 'MEP Specialist'}</p>
-                      <p className="text-[11px] text-slate-500">{u.department || 'Maintenance & Operations'}</p>
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Jabatan & Perusahaan</span>
+                      <p className="font-semibold text-slate-800 line-clamp-1">{u.position || u.specialization || 'MEP Specialist'}</p>
+                      <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-0.5">
+                        <Building2 className="w-3 h-3 text-slate-400 shrink-0" />
+                        <span className="truncate">{u.company || u.department || 'PT DAHANA (Persero)'}</span>
+                      </p>
                     </div>
 
                     <div className="flex items-center justify-between pt-1 text-[11px] text-slate-500">
@@ -755,30 +972,41 @@ export const TeamView: React.FC = () => {
                   ) : (
                     <>
                       <button
-                        onClick={() => switchUserById(u.id)}
-                        className="text-xs font-semibold text-blue-600 hover:text-blue-700 cursor-pointer"
+                        onClick={() => setSelectedUserForDetail(u)}
+                        className="text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 cursor-pointer"
                       >
-                        Beralih ke Akun Ini
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>Lihat Profil</span>
                       </button>
-
-                      {isAdmin && (
-                        <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1">
+                        {isAdmin && (
                           <button
-                            onClick={(e) => handleOpenEditRole(u, e)}
+                            onClick={(e) => handleOpenEdit(u, e)}
                             className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors cursor-pointer"
-                            title="Ubah Role & Departemen"
+                            title="Edit Data Personil"
                           >
-                            <Edit2 className="w-4 h-4" />
+                            <Edit2 className="w-3.5 h-3.5" />
                           </button>
+                        )}
+                        {!isPending && (
+                          <button
+                            onClick={() => switchUserById(u.id)}
+                            className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors cursor-pointer"
+                            title="Beralih Akun"
+                          >
+                            <UserCheck className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {isAdmin && (
                           <button
                             onClick={(e) => handleDeleteSingle(u, e)}
                             className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                            title="Hapus Pengguna"
+                            title="Hapus"
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -788,151 +1016,98 @@ export const TeamView: React.FC = () => {
         </div>
       )}
 
-      {/* Modal: Setujui Pendaftaran Akun & Tentukan Role */}
-      {isApproveModalOpen && targetUser && (
-        <Modal
-          isOpen={isApproveModalOpen}
-          onClose={() => {
-            setIsApproveModalOpen(false);
-            setTargetUser(null);
-          }}
-          title={`Setujui Pendaftaran: ${targetUser.name}`}
-          subtitle={`Email: ${targetUser.email} • Tentukan peran (role) dan divisi sebelum mengaktifkan akun.`}
-          maxWidth="md"
-        >
-          <div className="space-y-4 text-xs">
-            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-              <div className="flex items-center gap-2 text-amber-900 font-bold">
-                <Clock className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>Permintaan Pendaftaran Akun Baru</span>
-              </div>
-              <p className="text-[11px] text-amber-800 leading-relaxed">
-                Pengguna ini mendaftar dari halaman registrasi. Sebagai Administrator, tentukan role hak akses dan divisi resmi sebelum menyetujui akun aktif.
-              </p>
-            </div>
+      {/* Hidden File Inputs for Foto Profil (Upload & Camera Fallback) */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileUpload}
+        accept="image/*"
+        className="hidden"
+      />
+      <input
+        type="file"
+        ref={cameraFallbackInputRef}
+        onChange={handleFileUpload}
+        accept="image/*"
+        capture="user"
+        className="hidden"
+      />
 
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Tentukan Hak Akses / Role (Wajib)
-              </label>
-              <select
-                value={newRoleSelection}
-                onChange={(e) => setNewRoleSelection(e.target.value as UserRole)}
-                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 uppercase focus:outline-hidden focus:border-blue-500"
-              >
-                <option value="teknisi">TEKNISI (Eksekusi Work Order & Maintenance)</option>
-                <option value="supervisor">SUPERVISOR (Penugasan & Verifikasi Approval)</option>
-                <option value="manager">MANAGER (Executive KPI & Reporting)</option>
-                <option value="admin">ADMINISTRATOR (Full Akses Sistem)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                Departemen / Unit Kerja
-              </label>
-              <input
-                type="text"
-                value={newDepartment}
-                onChange={(e) => setNewDepartment(e.target.value)}
-                placeholder="e.g. Mechanical Maintenance, Electrical Division"
-                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsApproveModalOpen(false);
-                  setTargetUser(null);
-                }}
-                className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmApproval}
-                className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/30 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Check className="w-4 h-4" />
-                <span>Setujui & Aktifkan Akun</span>
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Modal: Ubah Role & Departemen Personil */}
-      {isEditRoleModalOpen && targetUser && (
-        <Modal
-          isOpen={isEditRoleModalOpen}
-          onClose={() => {
-            setIsEditRoleModalOpen(false);
-            setTargetUser(null);
-          }}
-          title={`Ubah Role: ${targetUser.name}`}
-          subtitle={`Konfigurasi hak akses modul dan struktur organisasi untuk ${targetUser.email}`}
-          maxWidth="md"
-        >
-          <div className="space-y-4 text-xs">
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Pilih Peran Baru</label>
-              <select
-                value={newRoleSelection}
-                onChange={(e) => setNewRoleSelection(e.target.value as UserRole)}
-                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 uppercase focus:outline-hidden focus:border-blue-500"
-              >
-                <option value="teknisi">TEKNISI (Akses: Dashboard, WO, Schedule)</option>
-                <option value="supervisor">SUPERVISOR (Akses: WO Approval, Tim, Aset, Schedule)</option>
-                <option value="manager">MANAGER (Akses: Executive Dashboard, Report, Aset)</option>
-                <option value="admin">ADMINISTRATOR (Full Akses Seluruh Fitur)</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-1">Departemen / Unit Kerja</label>
-              <input
-                type="text"
-                value={newDepartment}
-                onChange={(e) => setNewDepartment(e.target.value)}
-                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => {
-                  setIsEditRoleModalOpen(false);
-                  setTargetUser(null);
-                }}
-                className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveRole}
-                className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer"
-              >
-                Simpan Perubahan
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {/* Modal: Tambah Anggota Tim Baru */}
+      {/* Modal: Tambah / Edit Anggota Tim Lengkap (7 Field) */}
       <Modal
         isOpen={isAddUserModalOpen}
-        onClose={() => setIsAddUserModalOpen(false)}
-        title="Tambah Anggota Tim MEP Baru"
-        subtitle="Registrasi profil personil, penentuan role hak akses, dan divisi kerja"
+        onClose={() => {
+          setIsAddUserModalOpen(false);
+          setEditingUser(null);
+        }}
+        title={editingUser ? `Edit Data Anggota Tim: ${editingUser.name}` : 'Tambah Anggota Tim MEP Baru'}
         maxWidth="lg"
+        zIndex={50}
       >
-        <form onSubmit={handleSaveAdd} className="space-y-3 text-xs">
+        <form onSubmit={handleSaveForm} className="space-y-3.5 text-xs">
+          {/* Field: Foto (Upload file / Ambil gambar dari camera) */}
+          <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
+            <label className="block text-[11px] font-bold text-slate-700 mb-2 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Camera className="w-3.5 h-3.5 text-blue-600" />
+                <span>Foto Profil (Upload File / Ambil Gambar dari Kamera)</span>
+              </span>
+              {formUser.avatar && (
+                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                  Foto Terpasang
+                </span>
+              )}
+            </label>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3.5">
+              <div className="relative group shrink-0">
+                {formUser.avatar ? (
+                  <img
+                    src={formUser.avatar}
+                    alt="Preview Foto"
+                    className="w-16 h-16 rounded-full object-cover border-2 border-blue-500 shadow-md"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-slate-200 border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400">
+                    <ImageIcon className="w-6 h-6" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 w-full flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex-1 min-w-[130px] px-3 py-2 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg text-slate-700 font-semibold flex items-center justify-center gap-1.5 transition-all shadow-2xs cursor-pointer text-xs"
+                >
+                  <Upload className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Upload File</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => startCamera('user')}
+                  className="flex-1 min-w-[140px] px-3 py-2 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg text-blue-700 font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer text-xs"
+                >
+                  <Camera className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Ambil dari Kamera</span>
+                </button>
+
+                {formUser.avatar && (
+                  <button
+                    type="button"
+                    onClick={() => setFormUser({ ...formUser, avatar: '' })}
+                    className="p-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 rounded-lg transition-all cursor-pointer"
+                    title="Hapus Foto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Field 1: Nama */}
           <div>
             <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Lengkap (Wajib)</label>
             <input
@@ -940,79 +1115,135 @@ export const TeamView: React.FC = () => {
               required
               value={formUser.name}
               onChange={(e) => setFormUser({ ...formUser, name: e.target.value })}
-              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 text-xs"
+              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 text-xs"
               placeholder="e.g. Ir. Anton Wijaya"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* Field 2 & 3: No Telp/Whatsapp & Alamat e-mail */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Email Resmi</label>
-              <input
-                type="email"
-                required
-                value={formUser.email}
-                onChange={(e) => setFormUser({ ...formUser, email: e.target.value })}
-                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 text-xs"
-                placeholder="nama@mtcpro.co.id"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">No. Telepon / WhatsApp</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">No. Telp / WhatsApp</label>
               <input
                 type="text"
                 required
                 value={formUser.phone}
                 onChange={(e) => setFormUser({ ...formUser, phone: e.target.value })}
-                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 text-xs"
-                placeholder="+62 8..."
+                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 text-xs"
+                placeholder="+62 812-3456-7890"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Alamat E-mail</label>
+              <input
+                type="email"
+                required
+                value={formUser.email}
+                onChange={(e) => setFormUser({ ...formUser, email: e.target.value })}
+                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 text-xs"
+                placeholder="nama@dahana.id"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          {/* Field 4 & 5: Nama Perusahaan & Jabatan */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Penentuan Role Hak Akses</label>
-              <select
-                value={formUser.role}
-                onChange={(e) => setFormUser({ ...formUser, role: e.target.value as UserRole })}
-                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 uppercase focus:outline-hidden focus:border-blue-500 text-xs"
-              >
-                <option value="teknisi">TEKNISI</option>
-                <option value="supervisor">SUPERVISOR</option>
-                <option value="manager">MANAGER</option>
-                <option value="admin">ADMINISTRATOR</option>
-              </select>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Nama Perusahaan</label>
+              {vendors.length > 0 ? (
+                <select
+                  required
+                  value={formUser.company}
+                  onChange={(e) => setFormUser({ ...formUser, company: e.target.value })}
+                  className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 text-xs text-slate-800"
+                >
+                  <option value="">-- Pilih Perusahaan --</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.name}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  required
+                  value={formUser.company}
+                  onChange={(e) => setFormUser({ ...formUser, company: e.target.value })}
+                  className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 text-xs"
+                  placeholder="e.g. PT DAHANA (Persero)"
+                />
+              )}
             </div>
 
             <div>
-              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Divisi / Departemen</label>
+              <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Jabatan</label>
               <input
                 type="text"
-                value={formUser.department}
-                onChange={(e) => setFormUser({ ...formUser, department: e.target.value })}
-                className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 text-xs"
-                placeholder="e.g. Mechanical Maintenance"
+                value={formUser.position}
+                onChange={(e) => setFormUser({ ...formUser, position: e.target.value })}
+                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 text-xs"
+                placeholder="e.g. MEP Specialist / Chief Engineer"
               />
             </div>
           </div>
 
+          {/* Field 6: Role */}
           <div>
-            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Spesialisasi Teknis MEP</label>
-            <input
-              type="text"
-              value={formUser.specialization}
-              onChange={(e) => setFormUser({ ...formUser, specialization: e.target.value })}
-              className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 text-xs"
-              placeholder="e.g. Chiller Water Cooled, Trafo 20kV, Fire Alarm"
-            />
+            <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">Role (Hak Akses Pengguna)</label>
+            <select
+              value={formUser.role}
+              onChange={(e) => setFormUser({ ...formUser, role: e.target.value as UserRole })}
+              className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 uppercase focus:outline-hidden focus:border-blue-500 text-xs"
+            >
+              <option value="teknisi">TEKNISI (Akses: Dashboard, WO, Schedule)</option>
+              <option value="supervisor">SUPERVISOR (Akses: WO Approval, Tim, Aset, Schedule)</option>
+              <option value="manager">MANAGER (Akses: Executive Dashboard, Report, Aset)</option>
+              <option value="admin">ADMINISTRATOR (Full Akses Seluruh Fitur)</option>
+            </select>
+          </div>
+
+          {/* Field 7: Password / Kata Sandi Login */}
+          <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-[11px] font-bold text-slate-800 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-blue-600" />
+                <span>Kata Sandi Login (Password)</span>
+              </label>
+              <span className="text-[10px] text-blue-700 font-medium">
+                {editingUser ? 'Kosongkan jika tidak ingin diubah' : 'Wajib diisi untuk akses login'}
+              </span>
+            </div>
+            <div className="relative">
+              <input
+                type={showFormPassword ? 'text' : 'password'}
+                value={formUser.password}
+                onChange={(e) => setFormUser({ ...formUser, password: e.target.value })}
+                className="w-full py-2 pl-3 pr-10 bg-white border border-slate-300 rounded-lg font-mono focus:outline-hidden focus:border-blue-500 text-xs text-slate-900"
+                placeholder={editingUser ? 'Ketik kata sandi baru untuk memperbarui...' : 'Ketik kata sandi login personil (e.g. 123456)...'}
+              />
+              <button
+                type="button"
+                onClick={() => setShowFormPassword(!showFormPassword)}
+                className="absolute right-3 top-2 text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+                title={showFormPassword ? 'Sembunyikan Kata Sandi' : 'Lihat Kata Sandi'}
+              >
+                {showFormPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Personil ini dapat langsung masuk ke aplikasi menggunakan alamat email dan kata sandi di atas.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
             <button
               type="button"
-              onClick={() => setIsAddUserModalOpen(false)}
+              onClick={() => {
+                setIsAddUserModalOpen(false);
+                setEditingUser(null);
+              }}
               className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
             >
               Batal
@@ -1021,19 +1252,18 @@ export const TeamView: React.FC = () => {
               type="submit"
               className="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-md shadow-blue-600/30 cursor-pointer text-xs"
             >
-              Simpan Anggota Tim
+              {editingUser ? 'Simpan Perubahan' : 'Simpan Anggota Tim'}
             </button>
           </div>
         </form>
       </Modal>
 
-      {/* Modal: Detail Profil Personil & Beban Kerja */}
+      {/* Modal: Detail Profil Personil */}
       {selectedUserForDetail && (
         <Modal
           isOpen={!!selectedUserForDetail}
           onClose={() => setSelectedUserForDetail(null)}
           title={`Profil: ${selectedUserForDetail.name}`}
-          subtitle={`ID: ${selectedUserForDetail.id} • ${selectedUserForDetail.email}`}
           maxWidth="lg"
         >
           <div className="space-y-4 text-xs">
@@ -1054,30 +1284,67 @@ export const TeamView: React.FC = () => {
                     {selectedUserForDetail.role}
                   </span>
                 </div>
-                <p className="text-slate-500 text-xs">{selectedUserForDetail.specialization || 'MEP Specialist'}</p>
+                <p className="text-slate-500 text-xs font-medium">
+                  {selectedUserForDetail.position || selectedUserForDetail.specialization || 'MEP Specialist'}
+                </p>
                 <div className="pt-0.5">
                   {getStatusBadge(selectedUserForDetail.status)}
                 </div>
               </div>
             </div>
 
-            <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Email:</span>
-                <span className="font-mono font-bold text-slate-900">{selectedUserForDetail.email}</span>
+            <div className="p-3.5 bg-white border border-slate-200 rounded-xl space-y-2.5">
+              <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Nama Lengkap:</span>
+                <span className="font-bold text-slate-900">{selectedUserForDetail.name}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">No. Telepon / WhatsApp:</span>
+              <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">No. Telp / WhatsApp:</span>
                 <span className="font-mono text-slate-800">{selectedUserForDetail.phone || '-'}</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500 font-medium">Divisi / Departemen:</span>
-                <span className="text-slate-800 font-semibold">{selectedUserForDetail.department || '-'}</span>
+              <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Alamat E-mail:</span>
+                <span className="font-mono font-bold text-slate-900">{selectedUserForDetail.email}</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Nama Perusahaan:</span>
+                <span className="text-slate-800 font-semibold">{selectedUserForDetail.company || selectedUserForDetail.department || 'PT DAHANA (Persero)'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Jabatan:</span>
+                <span className="text-slate-800 font-semibold">{selectedUserForDetail.position || selectedUserForDetail.specialization || 'MEP Specialist'}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-slate-100">
+                <span className="text-slate-500 font-medium">Role:</span>
+                <span className="font-mono font-bold uppercase text-blue-700">{selectedUserForDetail.role}</span>
+              </div>
+              <div className="flex justify-between items-center py-1">
                 <span className="text-slate-500 font-medium">Tanggal Bergabung:</span>
                 <span className="font-mono text-slate-700">{selectedUserForDetail.joinedDate || '-'}</span>
               </div>
+              {isAdmin && (
+                <div className="flex justify-between items-center py-2 px-3 bg-amber-50 rounded-xl border border-amber-200 mt-1">
+                  <span className="text-amber-900 font-bold flex items-center gap-1.5 text-xs">
+                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                    <span>Kata Sandi (Admin Only):</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-amber-950 text-xs bg-white px-2.5 py-1 rounded-lg border border-amber-200 shadow-2xs">
+                      {showDetailPassword
+                        ? selectedUserForDetail.password || '123456'
+                        : '••••••••'}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowDetailPassword(!showDetailPassword)}
+                      className="p-1.5 text-amber-700 hover:text-amber-950 hover:bg-amber-100/80 rounded-lg transition-colors cursor-pointer"
+                      title={showDetailPassword ? 'Sembunyikan Kata Sandi' : 'Lihat Kata Sandi'}
+                    >
+                      {showDetailPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {selectedUserForDetail.status === 'Pending' && isAdmin && (
@@ -1105,6 +1372,222 @@ export const TeamView: React.FC = () => {
               >
                 Tutup
               </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal: Setujui & Tentukan Role Pengguna */}
+      {isApproveModalOpen && targetUser && (
+        <Modal
+          isOpen={isApproveModalOpen}
+          onClose={() => {
+            setIsApproveModalOpen(false);
+            setTargetUser(null);
+          }}
+          title={`Persetujuan Akun: ${targetUser.name}`}
+          maxWidth="md"
+          zIndex={60}
+        >
+          <div className="space-y-4 text-xs">
+            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1.5">
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Nama Pengguna:</span>
+                <span className="font-bold text-slate-900">{targetUser.name}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>No. Telepon:</span>
+                <span className="font-mono text-slate-800">{targetUser.phone || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Email Kerja:</span>
+                <span className="font-mono text-slate-800">{targetUser.email}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Perusahaan:</span>
+                <span className="font-semibold text-slate-900">{targetUser.company || targetUser.department || '-'}</span>
+              </div>
+              <div className="flex justify-between items-center text-slate-600">
+                <span>Jabatan Diajukan:</span>
+                <span className="font-semibold text-blue-700">{targetUser.position || targetUser.specialization || '-'}</span>
+              </div>
+              {isAdmin && targetUser.password && (
+                <div className="flex justify-between items-center bg-amber-50 p-2 rounded-lg border border-amber-200 mt-1">
+                  <span className="font-bold text-amber-900 flex items-center gap-1">
+                    <Lock className="w-3.5 h-3.5 text-amber-700" />
+                    Kata Sandi (Admin Only):
+                  </span>
+                  <span className="font-mono font-bold text-amber-950">{targetUser.password}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="font-bold">Tentukan Role & Hak Akses Pengguna:</span>
+                <p className="text-[11px] text-emerald-800 mt-0.5">
+                  Setelah disetujui, akun pengguna akan langsung aktif dengan hak akses dan peran yang Anda tetapkan di bawah ini.
+                </p>
+              </div>
+            </div>
+
+            {/* Field 1: Role Selection */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Tentukan Role / Hak Akses
+              </label>
+              <select
+                value={newRoleSelection}
+                onChange={(e) => setNewRoleSelection(e.target.value as UserRole)}
+                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 uppercase focus:outline-hidden focus:border-blue-500 text-xs"
+              >
+                <option value="teknisi">TEKNISI (Akses: Dashboard, Work Orders, Schedules)</option>
+                <option value="supervisor">SUPERVISOR (Akses: WO Approval, Tim, Aset, Jadwal)</option>
+                <option value="manager">MANAGER (Akses: Executive Dashboard, Report, Aset)</option>
+                <option value="admin">ADMINISTRATOR (Full Akses Seluruh Fitur)</option>
+              </select>
+            </div>
+
+            {/* Field 2: Company Selection */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Nama Perusahaan / Vendor
+              </label>
+              {vendors.length > 0 ? (
+                <select
+                  value={newCompany}
+                  onChange={(e) => setNewCompany(e.target.value)}
+                  className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium focus:outline-hidden focus:border-blue-500 text-xs text-slate-800"
+                >
+                  <option value="PT DAHANA (Persero)">PT DAHANA (Persero) (Internal)</option>
+                  {vendors.map((v) => (
+                    <option key={v.id} value={v.name}>
+                      {v.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={newCompany}
+                  onChange={(e) => setNewCompany(e.target.value)}
+                  className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 text-xs"
+                  placeholder="e.g. PT DAHANA (Persero)"
+                />
+              )}
+            </div>
+
+            {/* Field 3: Position */}
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                Jabatan / Keahlian
+              </label>
+              <input
+                type="text"
+                value={newPosition}
+                onChange={(e) => setNewPosition(e.target.value)}
+                className="w-full py-2 px-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-hidden focus:border-blue-500 text-xs"
+                placeholder="e.g. MEP Specialist / HVAC Technician"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsApproveModalOpen(false);
+                  setTargetUser(null);
+                }}
+                className="px-3.5 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold cursor-pointer text-xs"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmApproval}
+                className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold shadow-md shadow-emerald-600/30 cursor-pointer text-xs flex items-center gap-1.5"
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Setujui & Aktifkan Akun</span>
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal: Live Camera Capture (Rendered last with zIndex={70} to appear in front of any form) */}
+      {isCameraActive && (
+        <Modal
+          isOpen={isCameraActive}
+          onClose={stopCamera}
+          title="Ambil Foto Profil dari Kamera"
+          maxWidth="md"
+          zIndex={70}
+        >
+          <div className="space-y-4">
+            <div className="relative rounded-2xl overflow-hidden bg-slate-950 aspect-square max-w-[340px] mx-auto border-2 border-slate-700 shadow-inner flex items-center justify-center">
+              {cameraError ? (
+                <div className="p-4 text-center space-y-3 text-slate-300">
+                  <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto" />
+                  <p className="text-xs text-amber-300">{cameraError}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      stopCamera();
+                      cameraFallbackInputRef.current?.click();
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                  >
+                    Buka Kamera Perangkat / Browser
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Viewfinder Circle Overlay */}
+                  <div className="absolute inset-0 pointer-events-none border-4 border-dashed border-white/40 rounded-full m-6" />
+                </>
+              )}
+            </div>
+
+            {/* Hidden canvas for snapshot generation */}
+            <canvas ref={canvasRef} className="hidden" />
+
+            <div className="flex items-center justify-between gap-3 pt-2">
+              <button
+                type="button"
+                onClick={stopCamera}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs cursor-pointer"
+              >
+                Batal
+              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleFacingMode}
+                  className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs cursor-pointer"
+                  title="Ganti Kamera (Depan / Belakang)"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  disabled={!!cameraError}
+                  className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-blue-600/30 flex items-center gap-2 cursor-pointer transition-all"
+                >
+                  <Camera className="w-4 h-4" />
+                  <span>Ambil Foto</span>
+                </button>
+              </div>
             </div>
           </div>
         </Modal>

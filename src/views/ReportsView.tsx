@@ -72,9 +72,6 @@ export const ReportsView: React.FC = () => {
             <BarChart3 className="w-5 h-5 text-blue-600" />
             <span>Laporan & Analitik Performa Pemeliharaan MEP</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Audit kepatuhan jadwal preventif, rasio perbaikan, dan keandalan sistem mesin
-          </p>
         </div>
 
         <div className="flex items-center gap-2">

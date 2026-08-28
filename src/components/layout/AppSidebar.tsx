@@ -31,7 +31,9 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
     currentView,
     setCurrentView,
     logout,
-    workOrders
+    workOrders,
+    users,
+    isMenuAccessibleForUser
   } = useApp();
 
   if (!currentUser) return null;
@@ -53,17 +55,15 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
     }
   };
 
-  // Filter menus based on dynamic permissions & strict role rules
-  const accessibleMenus = menuPermissions.filter((menu) => {
-    if (role === 'teknisi') {
-      return menu.menuKey === 'dashboard' || menu.menuKey === 'work_orders' || menu.menuKey === 'schedules';
-    }
-    if (role === 'admin') return true;
-    return menu.rolesAllowed && menu.rolesAllowed[role] === true;
-  });
+  // Filter main navigation menus (01 to 08), 09 and 10 are placed in Pengaturan Sistem section
+  const accessibleMenus = menuPermissions
+    .filter((menu) => menu.menuKey !== 'menu_permissions' && menu.menuKey !== 'supervisor_approval')
+    .filter((menu) => isMenuAccessibleForUser(menu.menuKey, currentUser));
 
   // Calculate badges
-  const pendingApprovalCount = workOrders.filter((w) => w.status === 'Selesai').length;
+  const pendingUsersCount = users.filter((u) => (u.status || '').toLowerCase().trim() === 'pending' || (u.status || '').toLowerCase().trim() === 'menunggu approval').length;
+  const totalApprovalCount = pendingUsersCount;
+
   const myTasksCount = workOrders.filter(
     (w) => w.assignedToId === currentUser.id && (w.status === 'Open' || w.status === 'Proses')
   ).length;
@@ -145,32 +145,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
 
         {/* Navigation Menus List */}
         <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-1">
-          {role === 'supervisor' && (
-            <div className="mb-3 pb-3 border-b border-slate-800">
-              <div className="px-3 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
-                Supervisi & Kontrol
-              </div>
-              <button
-                onClick={() => handleNavClick('supervisor_approval')}
-                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-xs font-medium transition-all cursor-pointer ${
-                  currentView === 'supervisor_approval'
-                    ? 'bg-amber-600 text-white font-semibold shadow-md shadow-amber-600/30'
-                    : 'text-amber-300 hover:bg-slate-800/80 bg-amber-950/30 border border-amber-800/30'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <CheckCheck className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Verifikasi & Approval WO</span>
-                </div>
-                {pendingApprovalCount > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500 text-white animate-pulse">
-                    {pendingApprovalCount}
-                  </span>
-                )}
-              </button>
-            </div>
-          )}
-
           <div className="px-3 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400">
             Menu Navigasi
           </div>
@@ -179,6 +153,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
           {accessibleMenus.map((menu, idx) => {
             const isActive = currentView === menu.menuKey;
             const displayNumber = (idx + 1).toString().padStart(2, '0');
+            const showUserBadge = (menu.menuKey === 'team' || menu.menuKey === 'menu_permissions') && pendingUsersCount > 0;
             return (
               <button
                 key={menu.menuKey}
@@ -200,41 +175,83 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
                   <div className={isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-300'}>
                     {getMenuIcon(menu.iconName)}
                   </div>
-                  <span className="truncate">{menu.label}</span>
+                  <span className="truncate">{menu.menuKey === 'vendors' ? 'Perusahaan' : menu.label}</span>
                 </div>
-                <ChevronRight
-                  className={`w-3.5 h-3.5 transition-transform opacity-0 group-hover:opacity-100 ${
-                    isActive ? 'opacity-100 text-blue-400 translate-x-0.5' : 'text-slate-500'
-                  }`}
-                />
+                <div className="flex items-center gap-1.5">
+                  {showUserBadge && (
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-amber-500 text-slate-950 animate-pulse">
+                      {pendingUsersCount}
+                    </span>
+                  )}
+                  <ChevronRight
+                    className={`w-3.5 h-3.5 transition-transform opacity-0 group-hover:opacity-100 ${
+                      isActive ? 'opacity-100 text-blue-400 translate-x-0.5' : 'text-slate-500'
+                    }`}
+                  />
+                </div>
               </button>
             );
           })}
 
-          {/* Admin Specific Settings: Menu Permissions */}
-          {role === 'admin' && (
-            <div className="pt-3 mt-3 border-t border-slate-800">
+          {/* Admin / Supervisor / Dynamic System Settings: Menu Permissions & Approval Center */}
+          {(isMenuAccessibleForUser('menu_permissions', currentUser) || isMenuAccessibleForUser('supervisor_approval', currentUser)) && (
+            <div className="pt-3 mt-3 border-t border-slate-800 space-y-1">
               <div className="px-3 pb-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-rose-400 flex items-center gap-1.5">
                 <ShieldCheck className="w-3 h-3" />
                 <span>Pengaturan Sistem</span>
               </div>
-              <button
-                onClick={() => handleNavClick('menu_permissions')}
-                className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all group cursor-pointer ${
-                  currentView === 'menu_permissions'
-                    ? 'bg-rose-950/50 text-rose-200 font-semibold border border-rose-700/50 shadow-sm'
-                    : 'text-rose-300 hover:bg-slate-800/60'
-                }`}
-              >
-                <div className="flex items-center gap-2.5 truncate">
-                  <span className="font-mono text-[11px] font-bold text-rose-400">09</span>
-                  <SlidersHorizontal className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span className="truncate">Pengaturan Akses Menu</span>
-                </div>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono">
-                  Admin
-                </span>
-              </button>
+
+              {/* 09. Pengaturan Akses Menu */}
+              {isMenuAccessibleForUser('menu_permissions', currentUser) && (
+                <button
+                  onClick={() => handleNavClick('menu_permissions')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all group cursor-pointer ${
+                    currentView === 'menu_permissions'
+                      ? 'bg-rose-950/50 text-rose-200 font-semibold border border-rose-700/50 shadow-sm'
+                      : 'text-rose-300 hover:bg-slate-800/60'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="font-mono text-[11px] font-bold text-rose-400">09</span>
+                    <SlidersHorizontal className="w-4 h-4 text-rose-400 shrink-0" />
+                    <span className="truncate">Pengaturan Akses Menu</span>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 font-mono">
+                    Admin
+                  </span>
+                </button>
+              )}
+
+              {/* 10. Verifikasi & Approval */}
+              {isMenuAccessibleForUser('supervisor_approval', currentUser) && (
+                <button
+                  onClick={() => handleNavClick('supervisor_approval')}
+                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition-all group cursor-pointer ${
+                    currentView === 'supervisor_approval'
+                      ? 'bg-amber-600 text-white font-semibold shadow-md shadow-amber-600/30'
+                      : 'text-amber-300 hover:bg-slate-800/60 bg-amber-950/20 border border-amber-800/30'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 truncate">
+                    <span className="font-mono text-[11px] font-bold text-amber-400">
+                      {isMenuAccessibleForUser('menu_permissions', currentUser) ? '10' : '09'}
+                    </span>
+                    <CheckCheck className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="truncate">Verifikasi & Approval</span>
+                  </div>
+                  {totalApprovalCount > 0 ? (
+                    <span className="px-1.5 py-0.2 rounded-full text-[9px] font-mono font-bold bg-rose-500 text-white animate-pulse">
+                      {totalApprovalCount}
+                    </span>
+                  ) : (
+                    <ChevronRight
+                      className={`w-3.5 h-3.5 transition-transform opacity-0 group-hover:opacity-100 ${
+                        currentView === 'supervisor_approval' ? 'opacity-100 text-amber-400 translate-x-0.5' : 'text-slate-500'
+                      }`}
+                    />
+                  )}
+                </button>
+              )}
             </div>
           )}
         </div>

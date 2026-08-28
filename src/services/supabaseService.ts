@@ -24,54 +24,105 @@ export const supabaseService = {
         console.error('Error fetching profiles from Supabase:', error);
         return null;
       }
-      return data.map((p) => ({
-        id: p.id,
-        name: p.name,
-        email: p.email,
-        role: p.role as UserRole,
-        avatar: p.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-        phone: p.phone,
-        specialization: p.specialization,
-        department: p.department,
-        joinedDate: p.joined_date,
-        status: (p.status as any) || 'Aktif'
-      }));
+
+      return data
+        .filter((p) => {
+          const email = (p.email || '').toLowerCase().trim();
+          const id = (p.id || '').toLowerCase().trim();
+          return !email.endsWith('@mtcpro.co.id') && id !== 'usr-admin-01' && id !== 'usr-spv-01' && id !== 'usr-tek-01' && p.name !== 'Admin Facilities' && p.name !== 'Admin Facility MEP' && p.name !== 'Rian Pratama' && p.name !== 'Agus Santoso';
+        })
+        .map((p) => {
+          return {
+            id: p.id,
+            name: p.name,
+            email: p.email,
+            password: p.password || '',
+            role: p.role as UserRole,
+            avatar: p.avatar || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
+            phone: p.phone || '',
+            company: p.company || p.department || 'PT DAHANA (Persero)',
+            position: p.position || p.specialization || 'MEP Specialist',
+            specialization: p.specialization || p.position || 'MEP Specialist',
+            department: p.department || p.company || 'Maintenance & Operations',
+            joinedDate: p.joined_date || (p.created_at ? p.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+            status: (p.status as any) || 'Aktif'
+          };
+        });
     } catch (err) {
       console.error('Exception fetching profiles:', err);
       return null;
     }
   },
 
+  async deleteDummyProfiles(): Promise<void> {
+    if (!isSupabaseConfigured()) return;
+    try {
+      await supabase
+        .from('profiles')
+        .delete()
+        .or('email.ilike.%@mtcpro.co.id,id.eq.usr-admin-01,id.eq.usr-spv-01,id.eq.usr-tek-01');
+    } catch (e) {
+      console.warn('Delete dummy profiles failed:', e);
+    }
+  },
+
   async insertProfile(user: Omit<UserProfile, 'id'>): Promise<UserProfile | null> {
     if (!isSupabaseConfigured()) return null;
     try {
-      const { data, error } = await supabase.from('profiles').insert([{
+      const targetStatus = user.status || 'Pending';
+      // 1. Try inserting with all fields including password and status
+      let res = await supabase.from('profiles').insert([{
         name: user.name,
         email: user.email,
+        password: user.password || '',
         role: user.role,
         avatar: user.avatar,
         phone: user.phone,
-        specialization: user.specialization,
-        department: user.department,
+        company: user.company,
+        position: user.position,
+        specialization: user.position || user.specialization || 'MEP Specialist',
+        department: user.company || user.department || 'Maintenance & Operations',
         joined_date: user.joinedDate || new Date().toISOString().substring(0, 10),
-        status: user.status || 'Pending'
+        status: targetStatus
       }]).select().single();
 
-      if (error) {
-        console.error('Error inserting profile to Supabase:', error);
+      // 2. If it fails (e.g. column company/position not found in schema cache), retry with status
+      if (res.error) {
+        console.warn('Extended profile insert failed, retrying with standard schema:', res.error.message);
+        res = await supabase.from('profiles').insert([{
+          name: user.name,
+          email: user.email,
+          password: user.password || '',
+          role: user.role,
+          avatar: user.avatar,
+          phone: user.phone,
+          specialization: user.position || user.specialization || 'MEP Specialist',
+          department: user.company || user.department || 'Maintenance & Operations',
+          joined_date: user.joinedDate || new Date().toISOString().substring(0, 10),
+          status: targetStatus
+        }]).select().single();
+      }
+
+      if (res.error || !res.data) {
+        console.error('Final insert profile to Supabase failed:', res.error);
         return null;
       }
+
+      const data = res.data;
       return {
         id: data.id,
         name: data.name,
         email: data.email,
+        password: data.password || user.password || '',
         role: data.role,
         avatar: data.avatar,
-        phone: data.phone,
-        specialization: data.specialization,
-        department: data.department,
-        joinedDate: data.joined_date,
-        status: data.status || 'Pending'
+        phone: data.phone || user.phone || '',
+        company: data.company || data.department || user.company || 'PT DAHANA (Persero)',
+        position: data.position || data.specialization || user.position || 'MEP Specialist',
+        specialization: data.specialization || user.specialization || 'MEP Specialist',
+        department: data.department || user.department || 'Maintenance & Operations',
+        joinedDate: data.joined_date || user.joinedDate,
+        status: (data.status as any) || targetStatus
       };
     } catch (err) {
       console.error('Exception inserting profile:', err);
@@ -118,15 +169,30 @@ export const supabaseService = {
       if (updates.name !== undefined) payload.name = updates.name;
       if (updates.email !== undefined) payload.email = updates.email;
       if (updates.role !== undefined) payload.role = updates.role;
+      if (updates.avatar !== undefined) payload.avatar = updates.avatar;
       if (updates.phone !== undefined) payload.phone = updates.phone;
+      if (updates.company !== undefined) payload.company = updates.company;
+      if (updates.position !== undefined) payload.position = updates.position;
       if (updates.specialization !== undefined) payload.specialization = updates.specialization;
       if (updates.department !== undefined) payload.department = updates.department;
       if (updates.status !== undefined) payload.status = updates.status;
 
       const { error } = await supabase.from('profiles').update(payload).eq('id', userId);
       if (error) {
-        console.error('Error updating user in Supabase:', error);
-        return false;
+        console.warn('Extended profile update failed, retrying with standard schema payload:', error.message);
+        const standardPayload: any = {};
+        if (updates.name !== undefined) standardPayload.name = updates.name;
+        if (updates.email !== undefined) standardPayload.email = updates.email;
+        if (updates.role !== undefined) standardPayload.role = updates.role;
+        if (updates.avatar !== undefined) standardPayload.avatar = updates.avatar;
+        if (updates.phone !== undefined) standardPayload.phone = updates.phone;
+        if (updates.position !== undefined || updates.specialization !== undefined) {
+          standardPayload.specialization = updates.position || updates.specialization;
+        }
+        if (updates.company !== undefined || updates.department !== undefined) {
+          standardPayload.department = updates.company || updates.department;
+        }
+        await supabase.from('profiles').update(standardPayload).eq('id', userId);
       }
       return true;
     } catch (err) {
@@ -176,27 +242,39 @@ export const supabaseService = {
         console.error('Error fetching assets from Supabase:', error);
         return null;
       }
-      return data.map((a) => ({
-        id: a.id,
-        assetTag: a.asset_tag,
-        name: a.name,
-        category: a.category,
-        location: a.location,
-        specification: a.notes || a.capacity || '',
-        manufactureYear: a.install_date ? a.install_date.substring(0, 4) : '2022',
-        installYear: a.install_date ? a.install_date.substring(0, 4) : '2023',
-        status: a.status,
-        condition: a.condition,
-        manufacturer: a.manufacturer,
-        model: a.model,
-        serialNumber: a.serial_number,
-        installDate: a.install_date,
-        lastMaintenance: a.last_maintenance,
-        nextMaintenance: a.next_maintenance,
-        capacity: a.capacity,
-        powerRating: a.power_rating,
-        notes: a.notes
-      }));
+      return data.map((a) => {
+        let cat = a.category;
+        let spec = a.notes || a.capacity || '';
+        // Extract original detailed category if it was stored with fallback
+        if (a.notes && typeof a.notes === 'string' && a.notes.startsWith('[Kategori: ')) {
+          const match = a.notes.match(/^\[Kategori:\s*([^\]]+)\]\s*(.*)/);
+          if (match) {
+            cat = match[1];
+            spec = match[2];
+          }
+        }
+        return {
+          id: a.id,
+          assetTag: a.asset_tag,
+          name: a.name,
+          category: cat,
+          location: a.location,
+          specification: spec,
+          manufactureYear: a.install_date ? a.install_date.substring(0, 4) : '2022',
+          installYear: a.install_date ? a.install_date.substring(0, 4) : '2023',
+          status: a.status || 'Operasional',
+          condition: a.condition || 'Baik',
+          manufacturer: a.manufacturer || '',
+          model: a.model || '',
+          serialNumber: a.serial_number || '',
+          installDate: a.install_date,
+          lastMaintenance: a.last_maintenance,
+          nextMaintenance: a.next_maintenance,
+          capacity: a.capacity || '',
+          powerRating: a.power_rating || '',
+          notes: a.notes || ''
+        };
+      });
     } catch (err) {
       console.error('Exception fetching assets:', err);
       return null;
@@ -205,14 +283,28 @@ export const supabaseService = {
 
   async insertAsset(asset: Omit<Asset, 'id'>): Promise<Asset | null> {
     if (!isSupabaseConfigured()) return null;
+
+    // Helper to map category to valid postgres enum if needed
+    const mapCategoryForEnum = (cat: string): 'Mechanical' | 'Electrical' | 'Plumbing' => {
+      const c = (cat || '').toLowerCase();
+      if (c.includes('listrik') || c.includes('genset') || c.includes('petir') || c.includes('cctv') || c.includes('alarm') || c.includes('audio') || c.includes('electric')) {
+        return 'Electrical';
+      }
+      if (c.includes('air') || c.includes('hydrant') || c.includes('ipal') || c.includes('plumb')) {
+        return 'Plumbing';
+      }
+      return 'Mechanical';
+    };
+
+    // Strategy 1: Full payload with native category
     try {
-      const { data, error } = await supabase.from('assets').insert([{
+      const fullPayload = {
         asset_tag: asset.assetTag,
         name: asset.name,
         category: asset.category,
         location: asset.location,
-        status: asset.status,
-        condition: asset.condition,
+        status: asset.status || 'Operasional',
+        condition: asset.condition || 'Baik',
         manufacturer: asset.manufacturer || '',
         model: asset.model || '',
         serial_number: asset.serialNumber || '',
@@ -221,36 +313,122 @@ export const supabaseService = {
         next_maintenance: asset.nextMaintenance || new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
         capacity: asset.specification || asset.capacity || '',
         power_rating: asset.powerRating || '',
-        notes: asset.specification || asset.notes || ''
-      }]).select().single();
-
-      if (error) {
-        console.error('Error inserting asset to Supabase:', error);
-        return null;
-      }
-      return {
-        id: data.id,
-        assetTag: data.asset_tag,
-        name: data.name,
-        category: data.category,
-        location: data.location,
-        specification: data.notes || data.capacity,
-        manufactureYear: asset.manufactureYear || '2022',
-        installYear: asset.installYear || '2023',
-        status: data.status,
-        condition: data.condition,
-        manufacturer: data.manufacturer,
-        model: data.model,
-        serialNumber: data.serial_number,
-        installDate: data.install_date,
-        lastMaintenance: data.last_maintenance,
-        nextMaintenance: data.next_maintenance,
-        capacity: data.capacity,
-        powerRating: data.power_rating,
-        notes: data.notes
+        notes: asset.specification ? `[Kategori: ${asset.category}] ${asset.specification}` : (asset.notes || `[Kategori: ${asset.category}]`)
       };
+
+      const { data, error } = await supabase.from('assets').insert([fullPayload]).select().single();
+
+      if (!error && data) {
+        return {
+          id: data.id,
+          assetTag: data.asset_tag,
+          name: data.name,
+          category: asset.category,
+          location: data.location,
+          specification: asset.specification || data.capacity || '',
+          manufactureYear: asset.manufactureYear || '2022',
+          installYear: asset.installYear || '2023',
+          status: data.status,
+          condition: data.condition,
+          manufacturer: data.manufacturer,
+          model: data.model,
+          serialNumber: data.serial_number,
+          installDate: data.install_date,
+          lastMaintenance: data.last_maintenance,
+          nextMaintenance: data.next_maintenance,
+          capacity: data.capacity,
+          powerRating: data.power_rating,
+          notes: data.notes
+        };
+      }
+      console.warn('Strategy 1 insertAsset error, attempting Strategy 2 with enum mapping...', error?.message);
     } catch (err) {
-      console.error('Exception inserting asset:', err);
+      console.warn('Exception during Strategy 1 insertAsset:', err);
+    }
+
+    // Strategy 2: Mapped category enum (for legacy enum mep_category constraint)
+    try {
+      const legacyCat = mapCategoryForEnum(asset.category);
+      const fallbackPayload = {
+        asset_tag: asset.assetTag,
+        name: asset.name,
+        category: legacyCat,
+        location: asset.location,
+        status: asset.status || 'Operasional',
+        condition: asset.condition || 'Baik',
+        manufacturer: asset.manufacturer || '',
+        model: asset.model || '',
+        serial_number: asset.serialNumber || '',
+        install_date: asset.installYear ? `${asset.installYear}-01-01` : (asset.installDate || new Date().toISOString().substring(0, 10)),
+        last_maintenance: asset.lastMaintenance || new Date().toISOString().substring(0, 10),
+        next_maintenance: asset.nextMaintenance || new Date(Date.now() + 30 * 86400000).toISOString().substring(0, 10),
+        capacity: asset.specification || '',
+        notes: `[Kategori: ${asset.category}] ${asset.specification || asset.notes || ''}`
+      };
+
+      const { data, error } = await supabase.from('assets').insert([fallbackPayload]).select().single();
+
+      if (!error && data) {
+        return {
+          id: data.id,
+          assetTag: data.asset_tag,
+          name: data.name,
+          category: asset.category,
+          location: data.location,
+          specification: asset.specification || data.capacity || '',
+          manufactureYear: asset.manufactureYear || '2022',
+          installYear: asset.installYear || '2023',
+          status: data.status,
+          condition: data.condition,
+          manufacturer: data.manufacturer,
+          model: data.model,
+          serialNumber: data.serial_number,
+          installDate: data.install_date,
+          lastMaintenance: data.last_maintenance,
+          nextMaintenance: data.next_maintenance,
+          capacity: data.capacity,
+          powerRating: data.power_rating,
+          notes: data.notes
+        };
+      }
+      console.warn('Strategy 2 insertAsset error, attempting Strategy 3 minimal...', error?.message);
+    } catch (err) {
+      console.warn('Exception during Strategy 2 insertAsset:', err);
+    }
+
+    // Strategy 3: Minimal standard columns
+    try {
+      const minimalPayload = {
+        asset_tag: asset.assetTag,
+        name: asset.name,
+        category: mapCategoryForEnum(asset.category),
+        location: asset.location,
+        status: asset.status || 'Operasional',
+        condition: asset.condition || 'Baik',
+        notes: `[Kategori: ${asset.category}] ${asset.specification || ''}`
+      };
+
+      const { data, error } = await supabase.from('assets').insert([minimalPayload]).select().single();
+
+      if (!error && data) {
+        return {
+          id: data.id,
+          assetTag: data.asset_tag,
+          name: data.name,
+          category: asset.category,
+          location: data.location,
+          specification: asset.specification,
+          manufactureYear: asset.manufactureYear || '2022',
+          installYear: asset.installYear || '2023',
+          status: data.status || 'Operasional',
+          condition: data.condition || 'Baik',
+          notes: data.notes
+        };
+      }
+      console.error('All insertAsset strategies failed:', error);
+      return null;
+    } catch (err) {
+      console.error('Fatal exception in insertAsset:', err);
       return null;
     }
   },
@@ -260,12 +438,13 @@ export const supabaseService = {
     try {
       const payload: any = {};
       if (updates.name !== undefined) payload.name = updates.name;
-      if (updates.category !== undefined) payload.category = updates.category;
       if (updates.location !== undefined) payload.location = updates.location;
       if (updates.status !== undefined) payload.status = updates.status;
       if (updates.condition !== undefined) payload.condition = updates.condition;
-      if (updates.notes !== undefined) payload.notes = updates.notes;
-      if (updates.capacity !== undefined) payload.capacity = updates.capacity;
+      if (updates.specification !== undefined || updates.notes !== undefined) {
+        payload.notes = `[Kategori: ${updates.category || 'MEP'}] ${updates.specification || updates.notes || ''}`;
+        payload.capacity = updates.specification || '';
+      }
       if (updates.powerRating !== undefined) payload.power_rating = updates.powerRating;
       if (updates.nextMaintenance !== undefined) payload.next_maintenance = updates.nextMaintenance;
 
@@ -281,6 +460,15 @@ export const supabaseService = {
       await supabase.from('assets').delete().eq('id', id);
     } catch (err) {
       console.error('Exception deleting asset:', err);
+    }
+  },
+
+  async deleteBulkAssets(ids: string[]) {
+    if (!isSupabaseConfigured() || ids.length === 0) return;
+    try {
+      await supabase.from('assets').delete().in('id', ids);
+    } catch (err) {
+      console.error('Exception bulk deleting assets:', err);
     }
   },
 
@@ -679,14 +867,6 @@ export const supabaseService = {
     }
   },
 
-  async deleteBulkAssets(ids: string[]) {
-    if (!isSupabaseConfigured() || ids.length === 0) return;
-    try {
-      await supabase.from('assets').delete().in('id', ids);
-    } catch (err) {
-      console.error('Exception bulk deleting assets:', err);
-    }
-  },
 
   async deleteBulkVendors(ids: string[]) {
     if (!isSupabaseConfigured() || ids.length === 0) return;

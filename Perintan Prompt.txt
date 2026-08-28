@@ -1,0 +1,23 @@
+Pada penambahan aset baru, revisi form pengisian sebagai berikut:
+- NO Aset
+- Lokasi
+- Kategori : pilihan dropdown menu terdiri dari: Kelistrikan, Genset, HVAC, Air bersih, Grounding & Penyalur Petir, CCTV, Hydrant, Fire Alarm, IPAL, Video Audio, Bangunan, Landscape.
+- Nama aset
+- Spesifikasi
+- Tahun Pembuatan
+- Tahun Instalasi
+
+
+Pada penerbitan WO baru, revisi form pengisian menjadi sebagai berikut:
+- NO WO
+- Tanggal WO
+- Prioritas, dropdown menu: Emergency, High, Medium, Low
+- Kategori WO, dropdown menu: Corrective, Preventive, Inspection, Operation, Supervise
+- Jenis Pekerjaan, dropdown menu: Mechanical, Electrical, Sipil, Others
+- Vendor Pelaksana
+- Nama Pelaksana
+- Lokasi
+- Nama Aset
+- Deskripsi
+- Part/Material/Mesin, berupa tabel: | NO | Nama Part/Material/Mesin | QTY | Unit|
+- Dokumentasi, fitur upload foto / ambil foto langsung via camera

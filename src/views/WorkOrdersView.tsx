@@ -190,11 +190,11 @@ export const WorkOrdersView: React.FC = () => {
       startDate: todayStr,
       endDate: endStr,
       vendorName: 'Internal Facilities Team',
-      assignedToName: defaultTech ? defaultTech.name : 'Agus Santoso',
+      assignedToName: defaultTech ? defaultTech.name : '',
       assignedToId: defaultTech ? defaultTech.id : '',
-      supervisorName: defaultSpv ? defaultSpv.name : 'Rian Pratama',
+      supervisorName: defaultSpv ? defaultSpv.name : '',
       supervisorId: defaultSpv ? defaultSpv.id : '',
-      location: defaultAsset ? defaultAsset.location : 'Basement 1 — Machine Room',
+      location: defaultAsset ? defaultAsset.location : '',
       assetName: defaultAsset ? defaultAsset.name : '',
       assetId: defaultAsset ? defaultAsset.id : '',
       description: '',
@@ -400,7 +400,7 @@ export const WorkOrdersView: React.FC = () => {
   const kanbanColumns: { status: WOStatus; label: string; bg: string }[] = [
     { status: 'Open', label: '1. Antrean Tiket (Open)', bg: 'border-t-blue-500' },
     { status: 'Proses', label: '2. Sedang Dikerjakan (In Progress)', bg: 'border-t-amber-500' },
-    { status: 'Pending', label: '3. Pending Sparepart / Vendor', bg: 'border-t-purple-500' },
+    { status: 'Pending', label: '3. Pending Sparepart / Perusahaan', bg: 'border-t-purple-500' },
     { status: 'Selesai', label: '4. Selesai (Menunggu SPV)', bg: 'border-t-emerald-500' },
     { status: 'Disetujui', label: '5. Disetujui & Closed', bg: 'border-t-slate-400' }
   ];
@@ -414,9 +414,6 @@ export const WorkOrdersView: React.FC = () => {
             <ClipboardList className="w-5 h-5 text-blue-600" />
             <span>Manajemen Work Order (WO)</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Pelacakan instruksi kerja, jadwal mulai & selesai pekerjaan, penugasan personil, alokasi material, dan dokumentasi foto
-          </p>
         </div>
 
         <div className="flex items-center gap-2.5">
@@ -566,7 +563,7 @@ export const WorkOrdersView: React.FC = () => {
         <div className="industrial-panel overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-100 text-slate-500 uppercase tracking-wider font-semibold">
+              <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="px-3 py-3 w-10 text-center">
                     <input
@@ -881,7 +878,7 @@ export const WorkOrdersView: React.FC = () => {
                 </p>
               </div>
               <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Vendor Pelaksana:</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">Perusahaan Pelaksana:</span>
                 <p className="font-semibold text-slate-800 text-xs mt-0.5">{selectedWOForDetail.vendorName || 'Internal Facilities Team'}</p>
               </div>
               <div>
@@ -906,7 +903,7 @@ export const WorkOrdersView: React.FC = () => {
                 </span>
                 <div className="border border-slate-200 rounded-lg overflow-hidden">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
+                    <thead className="bg-slate-900 text-white font-semibold">
                       <tr>
                         <th className="px-3 py-2 w-12 text-center">NO</th>
                         <th className="px-3 py-2">Nama Part/Material/Mesin</th>
@@ -1188,12 +1185,12 @@ export const WorkOrdersView: React.FC = () => {
             </div>
           </div>
 
-          {/* BARIS 3: REKANAN VENDOR & TIM PENANGGUNG JAWAB (3 Kolom) */}
+          {/* BARIS 3: PERUSAHAAN PELAKSANA & TIM PENANGGUNG JAWAB (3 Kolom) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-            {/* 8. Vendor Pelaksana */}
+            {/* 8. Perusahaan Pelaksana */}
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 mb-0.5">
-                Vendor Pelaksana
+                Perusahaan Pelaksana
               </label>
               <select
                 value={formWO.vendorName}
@@ -1333,7 +1330,7 @@ export const WorkOrdersView: React.FC = () => {
 
             <div className="border border-slate-200 rounded-lg overflow-hidden bg-slate-50/50">
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200 text-[11px]">
+                <thead className="bg-slate-900 text-white font-semibold text-[11px]">
                   <tr>
                     <th className="px-3 py-1.5 w-12 text-center">NO</th>
                     <th className="px-3 py-1.5">Nama Part / Material / Mesin</th>

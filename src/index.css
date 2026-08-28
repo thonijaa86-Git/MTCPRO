@@ -11,7 +11,7 @@
 
   body {
     @apply bg-slate-50 text-slate-800 antialiased font-sans;
-    background-image: 
+    background-image:
       radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.03) 0px, transparent 50%),
       radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.03) 0px, transparent 50%);
     min-height: 100vh;
@@ -35,13 +35,24 @@
   ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
   }
+
+  /* Prevent browser autofill from making inputs bright white */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover, 
+  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
+    -webkit-text-fill-color: #f8fafc !important;
+    caret-color: #ffffff !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
 }
 
 /* Industrial Grid Accents */
 .industrial-grid-bg {
   background-size: 24px 24px;
   background-image: linear-gradient(to right, rgba(203, 213, 225, 0.25) 1px, transparent 1px),
-                    linear-gradient(to bottom, rgba(203, 213, 225, 0.25) 1px, transparent 1px);
+    linear-gradient(to bottom, rgba(203, 213, 225, 0.25) 1px, transparent 1px);
 }
 
 .industrial-panel {
@@ -52,14 +63,68 @@
   @apply px-5 py-4 border-b border-slate-100 flex items-center justify-between;
 }
 
+/* ========================================================================== */
+/* Freeze Table Column Header (Sticky Header seperti Freeze di Excel)         */
+/* ========================================================================== */
+.industrial-panel>.overflow-x-auto,
+.table-freeze-container {
+  max-height: calc(100vh - 220px);
+  overflow-y: auto;
+  overflow-x: auto;
+  position: relative;
+}
+
+table thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+table thead.bg-slate-50,
+table thead.bg-slate-50 th {
+  background-color: #f8fafc;
+  box-shadow: 0 1px 0 #e2e8f0;
+}
+
+table thead.bg-slate-100,
+table thead.bg-slate-100 th {
+  background-color: #f1f5f9;
+  box-shadow: 0 1px 0 #e2e8f0;
+}
+
+table thead.bg-slate-900,
+table thead.bg-slate-900 th {
+  background-color: #0f172a;
+  box-shadow: 0 1px 0 #1e293b;
+}
+
+table thead.bg-white,
+table thead.bg-white th {
+  background-color: #ffffff;
+  box-shadow: 0 1px 0 #e2e8f0;
+}
+
 .font-mono-num {
   font-family: 'JetBrains Mono', monospace;
   font-feature-settings: "tnum" 1;
 }
 
 @keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.6; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.6;
+  }
 }
 
 .animate-pulse-subtle {

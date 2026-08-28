@@ -59,13 +59,18 @@ interface AppContextType {
   removeToast: (id: string) => void;
   
   // Auth & Roles
-  login: (email: string, role?: UserRole) => boolean;
-  register: (name: string, email: string, role?: UserRole, specialization?: string) => boolean | Promise<boolean>;
+  login: (email: string, password?: string, role?: UserRole) => boolean;
+  register: (name: string, email: string, phone?: string, company?: string, position?: string, password?: string, role?: UserRole) => boolean | Promise<boolean>;
   logout: () => void;
   switchUserRole: (role: UserRole) => void;
   switchUserById: (userId: string) => void;
   isMenuAccessibleForRole: (menuKey: string, role: UserRole) => boolean;
   updateMenuPermission: (menuKey: string, targetRole: 'teknisi' | 'supervisor' | 'manager', allowed: boolean) => void;
+  userMenuPermissions: Record<string, string[]>;
+  updateUserMenuPermission: (userId: string, menuKey: string, allowed: boolean) => void;
+  setUserMenuPermissions: (userId: string, menuKeys: string[] | null) => void;
+  isMenuAccessibleForUser: (menuKey: string, user: UserProfile) => boolean;
+  getDefaultMenuKeysForRole: (role: UserRole) => string[];
   
   // Asset Actions
   addAsset: (asset: Omit<Asset, 'id'>) => void;
@@ -108,7 +113,7 @@ interface AppContextType {
   updateUserRole: (userId: string, newRole: UserRole) => void;
   addUser: (user: Omit<UserProfile, 'id'>) => void;
   updateUser: (id: string, updates: Partial<UserProfile>) => void;
-  approveUser: (id: string, assignedRole: UserRole, department?: string) => void;
+  approveUser: (id: string, assignedRole: UserRole, department?: string, company?: string, position?: string) => void;
   rejectUser: (id: string) => void;
   deleteUser: (id: string) => void;
   deleteBulkUsers: (ids: string[]) => void;
@@ -142,33 +147,130 @@ const STORAGE_KEYS = {
   VENDORS: 'mtcpro_vendors_v2',
   LOGS: 'mtcpro_logs_v2',
   NOTIFICATIONS: 'mtcpro_notifications_v2',
+  USER_PERMISSIONS: 'mtcpro_user_permissions_v2',
+  APPROVED_MAP: 'mtcpro_approved_users_map'
+};
+
+const DEFAULT_SYSTEM_EMAILS = new Set([
+  'admin@mtcpro.co.id',
+  'supervisor@mtcpro.co.id',
+  'teknisi@mtcpro.co.id',
+  'dedi.kurniawan@mtcpro.co.id',
+  'hendra.saputra@mtcpro.co.id',
+  'manager@mtcpro.co.id'
+]);
+
+const getApprovedUsersMap = (): Record<string, string> => {
+  try {
+    const saved = localStorage.getItem('mtcpro_approved_users_map');
+    return saved ? JSON.parse(saved) : {};
+  } catch (e) {
+    return {};
+  }
+};
+
+const setApprovedUserStatus = (email: string, status: 'Aktif' | 'Ditolak') => {
+  try {
+    const current = getApprovedUsersMap();
+    current[email.toLowerCase().trim()] = status;
+    localStorage.setItem('mtcpro_approved_users_map', JSON.stringify(current));
+  } catch (e) {
+    // ignore
+  }
+};
+
+export const isDummyUser = (u: any): boolean => {
+  if (!u) return true;
+  const email = (u.email || '').toLowerCase().trim();
+  const id = (u.id || '').toLowerCase().trim();
+  const name = (u.name || '').trim();
+  return (
+    email.endsWith('@mtcpro.co.id') ||
+    id === 'usr-admin-01' ||
+    id === 'usr-spv-01' ||
+    id === 'usr-tek-01' ||
+    name === 'Admin Facilities' ||
+    name === 'Admin Facility MEP' ||
+    name === 'Rian Pratama' ||
+    name === 'Agus Santoso'
+  );
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Load state from localStorage with fallback to INITIAL_*
   const [users, setUsers] = useState<UserProfile[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.USERS);
-    return saved ? JSON.parse(saved) : INITIAL_USERS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed
+            .filter((u: UserProfile) => !isDummyUser(u))
+            .map((u: UserProfile) => ({
+              ...u,
+              status: u.status || 'Aktif'
+            }));
+          localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(cleaned));
+          return cleaned;
+        }
+      } catch (e) {
+        // fallback
+      }
+    }
+    return [];
   });
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-    if (saved) return JSON.parse(saved);
-    // default to admin for instant test preview
-    return INITIAL_USERS[0];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (parsed && !isDummyUser(parsed)) return parsed;
+      } catch (e) {
+        // fallback
+      }
+    }
+    return null;
   });
 
   const [menuPermissions, setMenuPermissions] = useState<MenuPermission[]>(() => {
     const saved = localStorage.getItem(STORAGE_KEYS.PERMISSIONS);
-    const base: MenuPermission[] = saved ? JSON.parse(saved) : INITIAL_MENU_PERMISSIONS;
-    // Enforce strictly 3 menus for teknisi: dashboard, work_orders, schedules
-    return base.map((m) => ({
-      ...m,
-      rolesAllowed: {
-        ...m.rolesAllowed,
-        teknisi: m.menuKey === 'dashboard' || m.menuKey === 'work_orders' || m.menuKey === 'schedules'
+    let base: MenuPermission[] = INITIAL_MENU_PERMISSIONS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const savedMap = new Map<string, MenuPermission>();
+          parsed.forEach((p: MenuPermission) => savedMap.set(p.menuKey, p));
+          base = INITIAL_MENU_PERMISSIONS.map((im) => {
+            const savedItem = savedMap.get(im.menuKey);
+            return savedItem ? { ...im, rolesAllowed: { ...im.rolesAllowed, ...savedItem.rolesAllowed } } : im;
+          });
+        }
+      } catch (e) {
+        // fallback
       }
-    }));
+    }
+    // Enforce strictly 3 menus for teknisi: dashboard, work_orders, schedules, and sync metadata
+    return base.map((m) => {
+      const initialMatch = INITIAL_MENU_PERMISSIONS.find((im) => im.menuKey === m.menuKey);
+      return {
+        ...m,
+        menuNumber: initialMatch?.menuNumber || m.menuNumber,
+        label: initialMatch?.label || m.label,
+        description: initialMatch?.description || m.description,
+        iconName: initialMatch?.iconName || m.iconName,
+        rolesAllowed: {
+          ...m.rolesAllowed,
+          teknisi: m.menuKey === 'dashboard' || m.menuKey === 'work_orders' || m.menuKey === 'schedules'
+        }
+      };
+    });
+  });
+
+  const [userMenuPermissions, setUserMenuPermissionsState] = useState<Record<string, string[]>>(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.USER_PERMISSIONS);
+    return saved ? JSON.parse(saved) : {};
   });
 
   const [assets, setAssets] = useState<Asset[]>(() => {
@@ -215,6 +317,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.USERS, JSON.stringify(users)); }, [users]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(currentUser)); }, [currentUser]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(menuPermissions)); }, [menuPermissions]);
+  useEffect(() => { localStorage.setItem(STORAGE_KEYS.USER_PERMISSIONS, JSON.stringify(userMenuPermissions)); }, [userMenuPermissions]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.ASSETS, JSON.stringify(assets)); }, [assets]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.WORK_ORDERS, JSON.stringify(workOrders)); }, [workOrders]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.SCHEDULES, JSON.stringify(schedules)); }, [schedules]);
@@ -223,12 +326,89 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.LOGS, JSON.stringify(logs)); }, [logs]);
   useEffect(() => { localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(notifications)); }, [notifications]);
 
+  // Ensure menuPermissions always contains all 10 items (including 09 and 10)
+  useEffect(() => {
+    setMenuPermissions((prev) => {
+      const savedMap = new Map<string, MenuPermission>();
+      (prev || []).forEach((p) => savedMap.set(p.menuKey, p));
+
+      const merged = INITIAL_MENU_PERMISSIONS.map((im) => {
+        const savedItem = savedMap.get(im.menuKey);
+        return {
+          ...im,
+          rolesAllowed: savedItem ? { ...im.rolesAllowed, ...savedItem.rolesAllowed } : im.rolesAllowed
+        };
+      });
+
+      if (prev && prev.length === 10 && prev.every((p, idx) => p.menuKey === merged[idx]?.menuKey)) {
+        return prev;
+      }
+      localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(merged));
+      return merged;
+    });
+  }, []);
+
+  // Listen for storage events across browser tabs/windows
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === STORAGE_KEYS.USERS && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setUsers(parsed);
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+      if (e.key === STORAGE_KEYS.NOTIFICATIONS && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setNotifications(parsed);
+          }
+        } catch (err) {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
+
+  // Auto-generate notification when pending users are detected
+  useEffect(() => {
+    const pending = users.filter((u) => (u.status || '').toLowerCase().trim() === 'pending' || (u.status || '').toLowerCase().trim() === 'menunggu approval');
+    if (pending.length > 0) {
+      setNotifications((prev) => {
+        const hasExisting = prev.some((n) => (n.title.includes('Pendaftaran') || n.title.includes('Pengajuan')) && !n.read);
+        if (!hasExisting) {
+          const generatedNotif: SystemNotification = {
+            id: 'notif-pending-users-' + Date.now(),
+            title: 'Pendaftaran Akun Baru Menunggu Approval',
+            message: `Terdapat ${pending.length} pengguna baru (${pending.map(u => u.name).join(', ')}) yang mendaftar dan menunggu persetujuan Administrator.`,
+            timestamp: 'Baru saja',
+            type: 'warning',
+            read: false,
+            linkMenu: 'supervisor_approval'
+          };
+          return [generatedNotif, ...prev];
+        }
+        return prev;
+      });
+    }
+  }, [users]);
+
   // Live fetch from Supabase if configured
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
     const fetchSupabaseData = async () => {
       try {
+        // Asynchronously delete any lingering dummy profiles from Supabase
+        supabaseService.deleteDummyProfiles().catch(() => {});
+
         const [p, a, w, s, sp, v, mp] = await Promise.all([
           supabaseService.getProfiles(),
           supabaseService.getAssets(),
@@ -239,7 +419,44 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           supabaseService.getMenuPermissions()
         ]);
 
-        if (p && p.length > 0) setUsers(p);
+        if (p && p.length > 0) {
+          const nonDummy = p.filter((prof) => !isDummyUser(prof));
+          setUsers((prev) => {
+            const userMap = new Map<string, UserProfile>();
+            // 1. First keep all local real users
+            prev.filter((u) => !isDummyUser(u)).forEach((u) => {
+              if (u.email) userMap.set(u.email.toLowerCase().trim(), u);
+            });
+
+            // 2. Merge / enrich with profiles from Supabase
+            nonDummy.forEach((prof) => {
+              const emailKey = prof.email.toLowerCase().trim();
+              const existing = userMap.get(emailKey);
+              const resolvedStatus = existing?.status || prof.status || 'Aktif';
+
+              userMap.set(emailKey, {
+                ...prof,
+                password: prof.password || existing?.password || '',
+                phone: prof.phone || existing?.phone || '',
+                company: prof.company || existing?.company || 'PT DAHANA (Persero)',
+                position: prof.position || existing?.position || 'MEP Specialist',
+                status: resolvedStatus
+              });
+            });
+
+            const mergedList = Array.from(userMap.values());
+            // If no currentUser is active or active is dummy, auto-set to the first active admin (e.g. edi.supriatna@dahana.id)
+            setCurrentUser((curr) => {
+              if (!curr || isDummyUser(curr)) {
+                const adminUser = mergedList.find((u) => u.role === 'admin' && (u.status || 'Aktif') === 'Aktif');
+                return adminUser || mergedList[0] || null;
+              }
+              return curr;
+            });
+
+            return mergedList;
+          });
+        }
         if (a && a.length > 0) setAssets(a);
         if (w && w.length > 0) setWorkOrders(w);
         if (s && s.length > 0) setSchedules(s);
@@ -255,8 +472,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }));
           setMenuPermissions(normalizedMp);
         }
-      } catch (err) {
-        console.error('Supabase initial fetch failed, using local/cache store:', err);
+      } catch (error) {
+        console.error('Error fetching Supabase data:', error);
       }
     };
 
@@ -275,7 +492,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const addLog = (action: string, entityType: ActivityLog['entityType'], entityId: string, details: string) => {
+  // Sync helpers
+  const addLog = (
+    action: string,
+    entityType: ActivityLog['entityType'],
+    entityId: string,
+    details: string
+  ) => {
     const now = new Date();
     const timeStr = now.toISOString().replace('T', ' ').substring(0, 16);
     const newLog: ActivityLog = {
@@ -293,19 +516,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Auth Operations
-  const login = (email: string, role?: UserRole) => {
-    let foundUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const login = (email: string, password?: string, role?: UserRole) => {
+    const cleanEmail = (email || '').trim().toLowerCase();
+    let foundUser = users.find((u) => u.email.toLowerCase().trim() === cleanEmail);
     if (!foundUser && role) {
-      foundUser = users.find((u) => u.role === role);
+      foundUser = users.find((u) => u.role === role && (u.status || 'Aktif') === 'Aktif');
     }
     if (foundUser) {
-      if (foundUser.status === 'Pending') {
+      const isPending = (foundUser.status || '').toLowerCase().trim() === 'pending' || (foundUser.status || '').toLowerCase().trim() === 'menunggu approval';
+      const isRejected = (foundUser.status || '').toLowerCase().trim() === 'ditolak';
+
+      if (isPending) {
         showToast('warning', 'Akun Menunggu Persetujuan Admin', 'Pendaftaran akun Anda sedang menunggu verifikasi/approval oleh Administrator.');
         return false;
       }
-      if (foundUser.status === 'Ditolak') {
+      if (isRejected) {
         showToast('error', 'Akses Akun Ditolak', 'Pendaftaran akun Anda telah ditolak oleh Administrator.');
         return false;
+      }
+      // Password validation if configured on the user profile
+      if (foundUser.password && password && foundUser.password.trim() !== '') {
+        if (foundUser.password !== password) {
+          showToast('error', 'Login Gagal', 'Kata sandi (password) yang Anda masukkan tidak sesuai.');
+          return false;
+        }
       }
       setCurrentUser(foundUser);
       showToast('success', `Selamat Datang, ${foundUser.name}`, `Login berhasil sebagai ${foundUser.role.toUpperCase()}`);
@@ -316,35 +550,114 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   };
 
-  const register = async (name: string, email: string, role: UserRole = 'teknisi', specialization?: string) => {
-    const exists = users.some((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (exists) {
-      showToast('error', 'Pendaftaran Gagal', 'Email ini sudah terdaftar di sistem.');
-      return false;
+  const register = async (
+    name: string,
+    email: string,
+    phone?: string,
+    company?: string,
+    position?: string,
+    password?: string,
+    role: UserRole = 'teknisi'
+  ) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = name.trim();
+    const cleanPhone = phone?.trim() || '+62 8' + Math.floor(100000000 + Math.random() * 900000000);
+    const cleanCompany = company?.trim() || 'PT DAHANA (Persero)';
+    const cleanPosition = position?.trim() || 'MEP Specialist';
+    const cleanPassword = password?.trim() || '';
+
+    const existingIndex = users.findIndex((u) => u.email.toLowerCase() === cleanEmail);
+    if (existingIndex !== -1) {
+      const existingUser = users[existingIndex];
+      // If already active or approved
+      if (existingUser.status === 'Aktif') {
+        showToast('error', 'Pendaftaran Gagal', 'Email ini sudah aktif terdaftar di sistem MTCPRO. Silakan langsung masuk (Login).');
+        return false;
+      }
+
+      // If pending or rejected, update and re-submit to approval queue
+      const updatedPendingUser: UserProfile = {
+        ...existingUser,
+        name: cleanName,
+        phone: cleanPhone,
+        company: cleanCompany,
+        position: cleanPosition,
+        specialization: cleanPosition,
+        department: cleanCompany,
+        password: cleanPassword || existingUser.password || '',
+        status: 'Pending',
+        joinedDate: new Date().toISOString().substring(0, 10)
+      };
+
+      setUsers((prev) => prev.map((u, i) => (i === existingIndex ? updatedPendingUser : u)));
+
+      const newNotif: SystemNotification = {
+        id: 'notif-user-' + Date.now(),
+        title: 'Pendaftaran Akun Baru',
+        message: `${cleanName} (${cleanCompany} - ${cleanPosition}) mendaftar akun baru dan menunggu persetujuan admin.`,
+        timestamp: 'Baru saja',
+        type: 'warning',
+        read: false
+      };
+      setNotifications((prev) => [newNotif, ...prev]);
+
+      showToast('warning', 'Pendaftaran Berhasil Dikirim!', 'Pengajuan akun Anda telah tercatat dan sedang menunggu persetujuan (approval) oleh Administrator.');
+      addLog('Registrasi Akun Baru', 'user', updatedPendingUser.id, `Pendaftar ${cleanName} (${cleanEmail}) memperbarui pengajuan akun.`);
+
+      if (isSupabaseConfigured()) {
+        supabaseService.insertProfile(updatedPendingUser).catch((err) => console.warn(err));
+      }
+      return true;
     }
+
     const newUser: UserProfile = {
       id: 'usr-' + Date.now(),
-      name,
-      email,
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      company: cleanCompany,
+      position: cleanPosition,
+      specialization: cleanPosition,
+      password: cleanPassword,
       role,
       avatar: `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&auto=format&fit=crop&q=80`,
-      phone: '+62 8' + Math.floor(100000000 + Math.random() * 900000000),
-      specialization: specialization || 'Teknisi Lapangan MEP',
-      department: role === 'admin' ? 'Facility Management' : role === 'manager' ? 'Executive' : role === 'supervisor' ? 'Maintenance Operations' : 'Mechanical & Electrical Maintenance',
+      department: cleanCompany,
       joinedDate: new Date().toISOString().substring(0, 10),
       status: 'Pending'
     };
 
-    // Save to Supabase
-    supabaseService.insertProfile(newUser).then((created) => {
-      if (created) {
-        setUsers((prev) => prev.map((u) => (u.email === created.email ? created : u)));
-      }
-    });
-
+    // 1. Immediately update local state & storage
     setUsers((prev) => [...prev, newUser]);
+
+    // Push system notification for admin / supervisor
+    const newNotif: SystemNotification = {
+      id: 'notif-user-' + Date.now(),
+      title: 'Pendaftaran Akun Baru',
+      message: `${cleanName} (${cleanCompany} - ${cleanPosition}) mendaftar akun baru dan menunggu persetujuan admin.`,
+      timestamp: 'Baru saja',
+      type: 'warning',
+      read: false
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+
     showToast('warning', 'Pendaftaran Berhasil Dikirim!', 'Akun Anda sedang menunggu persetujuan (approval) oleh Administrator sebelum dapat login.');
-    addLog('Registrasi Akun Baru', 'user', newUser.id, `Pendaftaran akun baru menunggu persetujuan admin: ${name} (${email}).`);
+    addLog('Registrasi Akun Baru', 'user', newUser.id, `Pendaftaran akun baru menunggu persetujuan admin: ${cleanName} (${cleanEmail}) - ${cleanCompany}`);
+
+    // 2. Save to Supabase in background safely
+    try {
+      if (isSupabaseConfigured()) {
+        supabaseService.insertProfile(newUser).then((created) => {
+          if (created) {
+            setUsers((prev) => prev.map((u) => (u.email.toLowerCase() === created.email.toLowerCase() ? { ...created, status: 'Pending' } : u)));
+          }
+        }).catch((err) => {
+          console.warn('Supabase profile save error:', err);
+        });
+      }
+    } catch (err) {
+      console.warn('Supabase sync skipped:', err);
+    }
+
     return true;
   };
 
@@ -378,34 +691,107 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const isMenuAccessibleForRole = (menuKey: string, role: UserRole): boolean => {
-    if (role === 'teknisi') {
-      return menuKey === 'dashboard' || menuKey === 'work_orders' || menuKey === 'schedules';
+  const getDefaultMenuKeysForRole = (role: UserRole): string[] => {
+    if (role === 'admin') {
+      return menuPermissions.map((m) => m.menuKey);
     }
+    return menuPermissions
+      .filter((m) => m.rolesAllowed && m.rolesAllowed[role] === true)
+      .map((m) => m.menuKey);
+  };
+
+  const isMenuAccessibleForRole = (menuKey: string, role: UserRole): boolean => {
     if (role === 'admin') return true;
     const perm = menuPermissions.find((p) => p.menuKey === menuKey);
-    if (!perm) return true;
-    return perm.rolesAllowed[role] === true;
+    if (!perm) return false;
+    return perm.rolesAllowed?.[role] === true;
+  };
+
+  const isMenuAccessibleForUser = (menuKey: string, user: UserProfile): boolean => {
+    if (user.role === 'admin') return true;
+    if (userMenuPermissions && userMenuPermissions[user.id]) {
+      return userMenuPermissions[user.id].includes(menuKey);
+    }
+    return isMenuAccessibleForRole(menuKey, user.role);
+  };
+
+  const updateUserMenuPermission = (userId: string, menuKey: string, allowed: boolean) => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    setUserMenuPermissionsState((prev) => {
+      const currentAllowed = prev[userId] !== undefined
+        ? prev[userId]
+        : getDefaultMenuKeysForRole(targetUser.role);
+
+      const nextAllowed = allowed
+        ? Array.from(new Set([...currentAllowed, menuKey]))
+        : currentAllowed.filter((k) => k !== menuKey);
+
+      return {
+        ...prev,
+        [userId]: nextAllowed
+      };
+    });
+
+    const actionText = allowed ? 'diaktifkan' : 'dinonaktifkan';
+    showToast('info', 'Hak Akses User Diperbarui', `Menu ${menuKey} ${actionText} untuk ${targetUser.name}`);
+    addLog('Update Izin User', 'permission', userId, `Admin mengubah izin menu ${menuKey} untuk ${targetUser.name} (${targetUser.email}) menjadi ${allowed ? 'Aktif' : 'Non-Aktif'}.`);
+  };
+
+  const setUserMenuPermissions = (userId: string, menuKeys: string[] | null) => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (!targetUser) return;
+
+    setUserMenuPermissionsState((prev) => {
+      const updated = { ...prev };
+      if (menuKeys === null) {
+        delete updated[userId];
+      } else {
+        updated[userId] = menuKeys;
+      }
+      return updated;
+    });
+
+    if (menuKeys === null) {
+      showToast('info', 'Reset Izin User', `Izin menu untuk ${targetUser.name} dikembalikan ke default role ${targetUser.role.toUpperCase()}.`);
+      addLog('Reset Izin User', 'permission', userId, `Admin mengembalikan izin menu untuk ${targetUser.name} ke default role.`);
+    } else {
+      showToast('success', 'Izin User Disimpan', `Hak akses menu kustom berhasil disimpan untuk ${targetUser.name}.`);
+      addLog('Set Izin Kustom User', 'permission', userId, `Admin mengatur ${menuKeys.length} menu kustom untuk ${targetUser.name}.`);
+    }
   };
 
   const updateMenuPermission = (menuKey: string, targetRole: 'teknisi' | 'supervisor' | 'manager', allowed: boolean) => {
-    const updatedRoles = menuPermissions.find((p) => p.menuKey === menuKey)?.rolesAllowed;
-    const newRoles = {
-      ...(updatedRoles || { teknisi: true, supervisor: true, manager: true }),
-      [targetRole]: allowed
-    };
+    setMenuPermissions((prev) => {
+      const prevMap = new Map<string, MenuPermission>();
+      (prev || []).forEach((p) => prevMap.set(p.menuKey, p));
 
-    setMenuPermissions((prev) =>
-      prev.map((perm) => {
+      const fullList = INITIAL_MENU_PERMISSIONS.map((im) => {
+        const found = prevMap.get(im.menuKey);
+        return found ? { ...im, rolesAllowed: { ...im.rolesAllowed, ...found.rolesAllowed } } : im;
+      });
+
+      const updated = fullList.map((perm) => {
         if (perm.menuKey === menuKey) {
           return {
             ...perm,
-            rolesAllowed: newRoles
+            rolesAllowed: {
+              ...(perm.rolesAllowed || {}),
+              [targetRole]: allowed
+            }
           };
         }
         return perm;
-      })
-    );
+      });
+
+      localStorage.setItem(STORAGE_KEYS.PERMISSIONS, JSON.stringify(updated));
+      return updated;
+    });
+
+    const targetPerm = INITIAL_MENU_PERMISSIONS.find((p) => p.menuKey === menuKey);
+    const existingRoles = menuPermissions.find((p) => p.menuKey === menuKey)?.rolesAllowed || targetPerm?.rolesAllowed || {};
+    const newRoles = { ...existingRoles, [targetRole]: allowed };
 
     // Persist to Supabase
     supabaseService.updateMenuPermissionInDb(menuKey, newRoles);
@@ -415,20 +801,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Asset Actions
-  const addAsset = (assetData: Omit<Asset, 'id'>) => {
-    const id = 'ast-' + (assets.length + 1).toString().padStart(2, '0');
-    const newAsset: Asset = { id, ...assetData };
+  const addAsset = async (assetData: Omit<Asset, 'id'>) => {
+    const tempId = 'ast-' + Date.now();
+    const newAsset: Asset = { id: tempId, ...assetData };
     setAssets((prev) => [newAsset, ...prev]);
 
-    // Save to Supabase
-    supabaseService.insertAsset(assetData).then((created) => {
+    // Save directly to Supabase assets table
+    try {
+      const created = await supabaseService.insertAsset(assetData);
       if (created) {
-        setAssets((prev) => prev.map((a) => (a.assetTag === created.assetTag ? created : a)));
+        setAssets((prev) => prev.map((a) => (a.id === tempId || a.assetTag === created.assetTag ? created : a)));
       }
-    });
+    } catch (err) {
+      console.error('Error saving asset to Supabase:', err);
+    }
 
     showToast('success', 'Aset Berhasil Ditambahkan', `${newAsset.name} [${newAsset.assetTag}]`);
-    addLog('Tambah Aset Baru', 'asset', id, `Menambahkan aset MEP: ${newAsset.name} (${newAsset.category})`);
+    addLog('Tambah Aset Baru', 'asset', tempId, `Menambahkan aset MEP: ${newAsset.name} (${newAsset.category})`);
   };
 
   const updateAsset = (id: string, updates: Partial<Asset>) => {
@@ -830,7 +1219,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
-          return { ...u, role: newRole };
+          if (u.email) setApprovedUserStatus(u.email, 'Aktif');
+          return { ...u, role: newRole, status: 'Aktif' };
         }
         return u;
       })
@@ -838,29 +1228,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Save to Supabase
     supabaseService.updateProfileRole(userId, newRole);
+    supabaseService.updateProfileStatus(userId, 'Aktif', newRole);
 
     // If updating current user's role
     if (currentUser && currentUser.id === userId) {
-      setCurrentUser((prev) => (prev ? { ...prev, role: newRole } : null));
+      setCurrentUser((prev) => (prev ? { ...prev, role: newRole, status: 'Aktif' } : null));
     }
-    showToast('success', 'Role Pengguna Diubah', `Role diubah menjadi ${newRole.toUpperCase()}`);
+    showToast('success', 'Role Pengguna Diubah', `Role diubah menjadi ${newRole.toUpperCase()} dan akun berstatus Aktif.`);
     addLog('Ubah Role User', 'user', userId, `Mengubah hak akses user ID ${userId} menjadi ${newRole}`);
   };
 
-  const addUser = (userData: Omit<UserProfile, 'id'>) => {
-    const id = 'usr-' + Date.now();
-    const newUser: UserProfile = { id, status: 'Aktif', ...userData };
+  const addUser = async (userData: Omit<UserProfile, 'id'>) => {
+    const tempId = 'usr-' + Date.now();
+    const newUser: UserProfile = { id: tempId, status: 'Aktif', ...userData };
+    if (newUser.email) setApprovedUserStatus(newUser.email, 'Aktif');
     setUsers((prev) => [...prev, newUser]);
 
     // Save directly to Supabase profiles table
-    supabaseService.insertProfile(newUser).then((created) => {
+    try {
+      const created = await supabaseService.insertProfile(newUser);
       if (created) {
-        setUsers((prev) => prev.map((u) => (u.email === created.email ? created : u)));
+        setUsers((prev) => prev.map((u) => (u.id === tempId || u.email === created.email ? created : u)));
       }
-    });
+    } catch (err) {
+      console.error('Error saving user to Supabase:', err);
+    }
 
     showToast('success', 'Anggota Tim Ditambahkan', `${newUser.name} [${newUser.role.toUpperCase()}]`);
-    addLog('Tambah Anggota Tim', 'user', id, `Menambahkan anggota tim: ${newUser.name} (${newUser.role})`);
+    addLog('Tambah Anggota Tim', 'user', tempId, `Menambahkan anggota tim: ${newUser.name} (${newUser.role})`);
   };
 
   const updateUser = (id: string, updates: Partial<UserProfile>) => {
@@ -872,7 +1267,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     addLog('Edit Anggota Tim', 'user', id, `Memperbarui data profil pengguna ID ${id}`);
   };
 
-  const approveUser = (id: string, assignedRole: UserRole, department?: string) => {
+  const approveUser = (id: string, assignedRole: UserRole, department?: string, company?: string, position?: string) => {
+    const target = users.find((u) => u.id === id);
+    if (target?.email) {
+      setApprovedUserStatus(target.email, 'Aktif');
+    }
+
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === id) {
@@ -880,7 +1280,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...u,
             status: 'Aktif',
             role: assignedRole,
-            department: department || u.department
+            company: company || u.company || department || 'PT DAHANA (Persero)',
+            department: department || company || u.department || 'Maintenance & Operations',
+            position: position || u.position || u.specialization || 'MEP Specialist',
+            specialization: position || u.specialization || 'MEP Specialist'
           };
         }
         return u;
@@ -888,19 +1291,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     );
 
     supabaseService.updateProfileStatus(id, 'Aktif', assignedRole);
-    const target = users.find((u) => u.id === id);
-    showToast('success', 'Pendaftaran Akun Disetujui!', `${target?.name || 'Pengguna'} kini aktif dengan peran ${assignedRole.toUpperCase()}.`);
-    addLog('Approval Pengguna', 'user', id, `Admin menyetujui akun ${target?.name} dengan peran ${assignedRole.toUpperCase()}`);
+    if (company || department || position) {
+      supabaseService.updateProfile(id, {
+        company: company || department,
+        department: department || company,
+        position: position,
+        specialization: position
+      });
+    }
+
+    showToast('success', 'Pendaftaran Akun Disetujui!', `${target?.name || 'Pengguna'} kini aktif dengan peran ${assignedRole.toUpperCase()} dan otomatis terdaftar di menu Team.`);
+    addLog('Approval Pengguna', 'user', id, `Admin menyetujui akun ${target?.name} dengan peran ${assignedRole.toUpperCase()} (Perusahaan: ${company || department || target?.company})`);
   };
 
   const rejectUser = (id: string) => {
+    const target = users.find((u) => u.id === id);
+    if (target?.email) {
+      setApprovedUserStatus(target.email, 'Ditolak');
+    }
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, status: 'Ditolak' } : u))
     );
     supabaseService.updateProfileStatus(id, 'Ditolak');
-    const target = users.find((u) => u.id === id);
-    showToast('info', 'Pendaftaran Ditolak', `Pendaftaran akun ${target?.name || 'pengguna'} telah ditolak.`);
-    addLog('Penolakan Pengguna', 'user', id, `Admin menolak pendaftaran akun ${target?.name} (${target?.email})`);
+    showToast('warning', 'Pendaftaran Akun Ditolak', `Pendaftaran akun ${target?.name || 'pengguna'} telah ditolak.`);
+    addLog('Tolak Akun', 'user', id, `Admin menolak pendaftaran akun ${target?.name}`);
   };
 
   const deleteUser = (id: string) => {
@@ -1012,6 +1426,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         switchUserById,
         isMenuAccessibleForRole,
         updateMenuPermission,
+        userMenuPermissions,
+        updateUserMenuPermission,
+        setUserMenuPermissions,
+        isMenuAccessibleForUser,
+        getDefaultMenuKeysForRole,
         addAsset,
         updateAsset,
         deleteAsset,

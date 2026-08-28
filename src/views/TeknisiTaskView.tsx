@@ -98,9 +98,6 @@ export const TeknisiTaskView: React.FC = () => {
             <Wrench className="w-5 h-5 text-blue-600" />
             <span>Portal Tugas & Eksekusi Lapangan Teknisi</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Eksekusi checklist perbaikan teknis, pencatatan suku cadang, dan pelaporan progres
-          </p>
         </div>
 
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 text-xs font-mono font-bold">

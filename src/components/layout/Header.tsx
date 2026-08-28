@@ -38,16 +38,16 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
   const getViewTitle = () => {
     switch (currentView) {
       case 'dashboard': return 'Dashboard Operasional MEP';
-      case 'assets': return 'Pengelolaan Aset MEP';
+      case 'assets': return 'Pengelolaan Aset';
       case 'work_orders': return 'Manajemen Work Order (WO)';
       case 'schedules': return 'Jadwal Pemeliharaan Preventif';
       case 'spare_parts': return 'Inventaris & Stok Suku Cadang';
       case 'team': return 'Manajemen Tim & Kompetensi';
       case 'reports': return 'Laporan & Analitik Performa MEP';
-      case 'vendors': return 'Direktori Vendor Rekanan';
+      case 'vendors': return 'Direktori Perusahaan';
       case 'menu_permissions': return 'Pengaturan Hak Akses Menu';
       case 'teknisi_tasks': return 'Portal Tugas & Eksekusi Teknisi';
-      case 'supervisor_approval': return 'Portal Verifikasi & Approval Supervisor';
+      case 'supervisor_approval': return 'Pusat Otorisasi & Approval Pendaftaran Akun';
       default: return 'Sistem Maintenance MEP';
     }
   };
@@ -120,7 +120,9 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
           >
             <Bell className="w-5 h-5" />
             {unreadNotifs.length > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white animate-pulse" />
+              <span className="absolute -top-1 -right-1 px-1.5 py-0.2 min-w-[18px] text-center rounded-full text-[10px] font-mono font-bold bg-rose-500 text-white ring-2 ring-white animate-pulse shadow-sm">
+                {unreadNotifs.length}
+              </span>
             )}
           </button>
 
