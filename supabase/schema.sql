@@ -95,11 +95,21 @@ CREATE TABLE IF NOT EXISTS public.work_orders (
   description TEXT,
   materials JSONB DEFAULT '[]'::jsonb,
   photos JSONB DEFAULT '[]'::jsonb,
-  completed_at TIMESTAMPTZ,
-  approved_at TIMESTAMPTZ,
   technician_notes TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration support for work_orders table columns
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS supervisor_name TEXT;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS supervisor_id TEXT;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS vendor_name TEXT;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS start_date DATE;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS end_date DATE;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS wo_date DATE;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS wo_category TEXT;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS job_type TEXT;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS materials JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE public.work_orders ADD COLUMN IF NOT EXISTS photos JSONB DEFAULT '[]'::jsonb;
 
 -- Table 6: Maintenance Schedules (Menu: Maintenance Schedule)
 CREATE TABLE IF NOT EXISTS public.maintenance_schedules (

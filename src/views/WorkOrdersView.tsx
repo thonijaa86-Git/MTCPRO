@@ -712,7 +712,7 @@ export const WorkOrdersView: React.FC = () => {
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <div className="text-slate-800 font-medium flex items-center gap-1">
                             <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            <span>{wo.supervisorName || wo.approvedByName || 'Rian Pratama'}</span>
+                            <span>{wo.supervisorName || wo.approvedByName || '-'}</span>
                           </div>
                         </td>
 
@@ -910,7 +910,7 @@ export const WorkOrdersView: React.FC = () => {
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Supervisor Pengawas:</span>
                 <p className="font-semibold text-blue-800 text-xs mt-0.5 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{selectedWOForDetail.supervisorName || selectedWOForDetail.approvedByName || 'Rian Pratama (Supervisor)'}</span>
+                  <span>{selectedWOForDetail.supervisorName || selectedWOForDetail.approvedByName || '-'}</span>
                 </p>
               </div>
               <div>

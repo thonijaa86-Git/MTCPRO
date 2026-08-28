@@ -486,31 +486,41 @@ export const supabaseService = {
       return data.map((w) => ({
         id: w.id,
         woNumber: w.wo_number,
+        woDate: w.wo_date || (w.created_at ? w.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
         title: w.title,
-        description: w.description,
+        description: w.description || '',
         assetId: w.asset_id || '',
         assetName: w.asset_name || '',
-        assetTag: w.asset_tag || '',
-        category: w.category,
+        assetTag: w.asset_tag || 'AST-MEP',
+        category: w.category || 'Mechanical',
+        woCategory: w.wo_category || 'Corrective',
+        jobType: w.job_type || w.category || 'Mechanical',
         location: w.location || '',
-        priority: w.priority,
-        status: w.status,
-        assignedToId: w.assigned_to_id,
-        assignedToName: w.assigned_to_name,
+        priority: w.priority || 'Medium',
+        status: w.status || 'Open',
+        vendorName: w.vendor_name || 'Internal Facilities Team',
+        assignedToId: w.assigned_to_id || '',
+        assignedToName: w.assigned_to_name || '',
+        supervisorId: w.supervisor_id || w.approved_by_id || '',
+        supervisorName: w.supervisor_name || w.approved_by_name || '',
+        startDate: w.start_date || (w.created_at ? w.created_at.substring(0, 10) : new Date().toISOString().substring(0, 10)),
+        endDate: w.end_date || w.due_date || new Date(Date.now() + 2 * 86400000).toISOString().substring(0, 10),
+        dueDate: w.due_date || w.end_date,
         createdById: w.created_by_id,
-        createdByName: w.created_by_name,
+        createdByName: w.created_by_name || 'Admin',
         createdAt: w.created_at,
-        dueDate: w.due_date,
         completedAt: w.completed_at,
         approvedById: w.approved_by_id,
         approvedByName: w.approved_by_name,
         approvedAt: w.approved_at,
-        estimatedHours: Number(w.estimated_hours),
+        estimatedHours: Number(w.estimated_hours) || 4,
         actualHours: w.actual_hours ? Number(w.actual_hours) : undefined,
         stepsCompleted: w.steps_completed || [],
         totalSteps: w.total_steps || [],
-        sparePartsUsed: w.spare_parts_used || [],
-        technicianNotes: w.technician_notes,
+        sparePartsUsed: w.spare_parts_used || w.materials || [],
+        materials: w.materials || w.spare_parts_used || [],
+        photos: w.photos || (w.completion_proof_url ? [w.completion_proof_url] : []),
+        technicianNotes: w.technician_notes || '',
         completionProofUrl: w.completion_proof_url
       }));
     } catch (err) {
@@ -523,60 +533,102 @@ export const supabaseService = {
     if (!isSupabaseConfigured()) return null;
     try {
       const generatedNumber = wo.woNumber || `WO-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-      const { data, error } = await supabase.from('work_orders').insert([{
+      const payload: any = {
         wo_number: generatedNumber,
+        wo_date: wo.woDate || new Date().toISOString().substring(0, 10),
         title: wo.title || `Work Order ${wo.assetName}`,
-        description: wo.description,
-        asset_name: wo.assetName,
+        description: wo.description || '',
+        asset_name: wo.assetName || 'Aset Fasilitas',
+        asset_id: wo.assetId || null,
         asset_tag: wo.assetTag || 'AST-MEP',
         category: (wo.jobType as any) || (wo.category as any) || 'Mechanical',
-        location: wo.location,
-        priority: wo.priority,
+        wo_category: wo.woCategory || 'Corrective',
+        job_type: wo.jobType || 'Mechanical',
+        location: wo.location || '',
+        priority: wo.priority || 'Medium',
         status: wo.status || 'Open',
+        vendor_name: wo.vendorName || 'Internal Facilities Team',
         assigned_to_id: wo.assignedToId && wo.assignedToId.length > 20 ? wo.assignedToId : null,
-        assigned_to_name: wo.assignedToName,
+        assigned_to_name: wo.assignedToName || '',
+        supervisor_id: wo.supervisorId && wo.supervisorId.length > 20 ? wo.supervisorId : null,
+        supervisor_name: wo.supervisorName || '',
+        start_date: wo.startDate || new Date().toISOString().substring(0, 10),
+        end_date: wo.endDate || wo.dueDate || new Date(Date.now() + 2 * 86400000).toISOString().substring(0, 10),
+        due_date: wo.endDate || wo.dueDate,
         created_by_name: wo.createdByName || 'Admin',
-        due_date: wo.dueDate,
         estimated_hours: wo.estimatedHours || 4,
         total_steps: wo.totalSteps || [],
         steps_completed: wo.stepsCompleted || [],
         spare_parts_used: wo.materials || wo.sparePartsUsed || [],
-        technician_notes: wo.technicianNotes,
+        materials: wo.materials || [],
+        photos: wo.photos || [],
+        technician_notes: wo.technicianNotes || '',
         completion_proof_url: wo.photos && wo.photos.length > 0 ? wo.photos[0] : wo.completionProofUrl
-      }]).select().single();
+      };
 
-      if (error) {
-        console.error('Error inserting work order to Supabase:', error);
+      let res = await supabase.from('work_orders').insert([payload]).select().single();
+
+      // If extended columns are not present in legacy schema, retry with standard schema
+      if (res.error) {
+        console.warn('Extended insertWorkOrder failed, retrying standard schema:', res.error.message);
+        const standardPayload: any = {
+          wo_number: generatedNumber,
+          title: wo.title || `Work Order ${wo.assetName}`,
+          description: wo.description || '',
+          asset_name: wo.assetName || 'Aset Fasilitas',
+          asset_tag: wo.assetTag || 'AST-MEP',
+          category: (wo.jobType as any) || (wo.category as any) || 'Mechanical',
+          location: wo.location || '',
+          priority: wo.priority || 'Medium',
+          status: wo.status || 'Open',
+          assigned_to_id: wo.assignedToId && wo.assignedToId.length > 20 ? wo.assignedToId : null,
+          assigned_to_name: wo.assignedToName || '',
+          created_by_name: wo.createdByName || 'Admin',
+          due_date: wo.endDate || wo.dueDate,
+          estimated_hours: wo.estimatedHours || 4,
+          technician_notes: wo.technicianNotes || ''
+        };
+        res = await supabase.from('work_orders').insert([standardPayload]).select().single();
+      }
+
+      if (res.error || !res.data) {
+        console.error('Final insert work order to Supabase failed:', res.error);
         return null;
       }
+
+      const data = res.data;
       return {
         id: data.id,
         woNumber: data.wo_number,
-        woDate: wo.woDate || data.created_at?.substring(0, 10),
+        woDate: data.wo_date || wo.woDate || data.created_at?.substring(0, 10),
         title: data.title,
         description: data.description,
-        assetId: data.asset_id || '',
+        assetId: data.asset_id || wo.assetId || '',
         assetName: data.asset_name,
         assetTag: data.asset_tag,
         category: data.category,
         location: data.location,
         priority: data.priority,
-        woCategory: wo.woCategory,
-        jobType: wo.jobType,
-        vendorName: wo.vendorName,
+        woCategory: data.wo_category || wo.woCategory || 'Corrective',
+        jobType: data.job_type || wo.jobType || 'Mechanical',
+        vendorName: data.vendor_name || wo.vendorName || 'Internal Facilities Team',
         status: data.status,
-        assignedToId: data.assigned_to_id,
-        assignedToName: data.assigned_to_name,
+        assignedToId: data.assigned_to_id || wo.assignedToId,
+        assignedToName: data.assigned_to_name || wo.assignedToName,
+        supervisorId: data.supervisor_id || wo.supervisorId,
+        supervisorName: data.supervisor_name || wo.supervisorName,
         createdById: data.created_by_id,
         createdByName: data.created_by_name,
         createdAt: data.created_at,
-        dueDate: data.due_date,
+        startDate: data.start_date || wo.startDate,
+        endDate: data.end_date || wo.endDate,
+        dueDate: data.due_date || wo.dueDate,
         estimatedHours: Number(data.estimated_hours),
         totalSteps: data.total_steps,
         stepsCompleted: data.steps_completed,
-        sparePartsUsed: data.spare_parts_used,
-        materials: wo.materials,
-        photos: wo.photos
+        sparePartsUsed: data.spare_parts_used || wo.materials || [],
+        materials: data.materials || wo.materials || [],
+        photos: data.photos || wo.photos || []
       };
     } catch (err) {
       console.error('Exception inserting work order:', err);
@@ -592,12 +644,22 @@ export const supabaseService = {
       if (updates.priority !== undefined) payload.priority = updates.priority;
       if (updates.assignedToId !== undefined) payload.assigned_to_id = updates.assignedToId && updates.assignedToId.length > 20 ? updates.assignedToId : null;
       if (updates.assignedToName !== undefined) payload.assigned_to_name = updates.assignedToName;
+      if (updates.supervisorId !== undefined) payload.supervisor_id = updates.supervisorId && updates.supervisorId.length > 20 ? updates.supervisorId : null;
+      if (updates.supervisorName !== undefined) payload.supervisor_name = updates.supervisorName;
+      if (updates.vendorName !== undefined) payload.vendor_name = updates.vendorName;
+      if (updates.startDate !== undefined) payload.start_date = updates.startDate;
+      if (updates.endDate !== undefined) payload.end_date = updates.endDate;
+      if (updates.woCategory !== undefined) payload.wo_category = updates.woCategory;
+      if (updates.jobType !== undefined) payload.job_type = updates.jobType;
+      if (updates.materials !== undefined) payload.materials = updates.materials;
+      if (updates.photos !== undefined) payload.photos = updates.photos;
       if (updates.technicianNotes !== undefined) payload.technician_notes = updates.technicianNotes;
       if (updates.stepsCompleted !== undefined) payload.steps_completed = updates.stepsCompleted;
       if (updates.sparePartsUsed !== undefined) payload.spare_parts_used = updates.sparePartsUsed;
       if (updates.completedAt !== undefined) payload.completed_at = updates.completedAt;
       if (updates.approvedById !== undefined) payload.approved_by_id = updates.approvedById && updates.approvedById.length > 20 ? updates.approvedById : null;
       if (updates.approvedByName !== undefined) payload.approved_by_name = updates.approvedByName;
+      if (updates.approvedAt !== undefined) payload.approved_at = updates.approvedAt;
       if (updates.approvedAt !== undefined) payload.approved_at = updates.approvedAt;
 
       await supabase.from('work_orders').update(payload).eq('id', id);
