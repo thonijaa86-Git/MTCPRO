@@ -36,10 +36,18 @@ export const TeknisiTaskView: React.FC = () => {
   const [usedParts, setUsedParts] = useState<{ partId: string; quantity: number }[]>([]);
   const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
 
-  // Filter WOs assigned to this technician
-  const myTasks = workOrders.filter(
-    (w) => w.assignedToId === currentUser?.id || !w.assignedToId
-  );
+  // Filter WOs assigned to this technician or unassigned queue
+  const myTasks = workOrders.filter((w) => {
+    if (!currentUser) return true;
+    const matchId = w.assignedToId && (w.assignedToId === currentUser.id);
+    const matchName = w.assignedToName && currentUser.name && (
+      w.assignedToName.toLowerCase().trim() === currentUser.name.toLowerCase().trim() ||
+      currentUser.name.toLowerCase().includes(w.assignedToName.toLowerCase()) ||
+      w.assignedToName.toLowerCase().includes(currentUser.name.toLowerCase())
+    );
+    const isUnassigned = !w.assignedToId || w.assignedToName === 'Tim Teknisi' || w.assignedToName === 'Unassigned';
+    return matchId || matchName || isUnassigned;
+  });
 
   const activeTask = selectedWO || myTasks.find((w) => w.status === 'Proses') || myTasks[0] || null;
 

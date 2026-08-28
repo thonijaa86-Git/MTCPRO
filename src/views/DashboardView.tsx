@@ -77,9 +77,17 @@ export const DashboardView: React.FC = () => {
   const activeTechnicians = users.filter((u) => u.role === 'teknisi');
 
   // Technician Specific:
-  const myAssignedWOs = workOrders.filter(
-    (w) => w.assignedToId === currentUser?.id && (w.status === 'Open' || w.status === 'Proses')
-  );
+  const myAssignedWOs = workOrders.filter((w) => {
+    if (!currentUser) return false;
+    const matchId = w.assignedToId && (w.assignedToId === currentUser.id);
+    const matchName = w.assignedToName && currentUser.name && (
+      w.assignedToName.toLowerCase().trim() === currentUser.name.toLowerCase().trim() ||
+      currentUser.name.toLowerCase().includes(w.assignedToName.toLowerCase()) ||
+      w.assignedToName.toLowerCase().includes(currentUser.name.toLowerCase())
+    );
+    const isUnassigned = !w.assignedToId || w.assignedToName === 'Tim Teknisi' || w.assignedToName === 'Unassigned';
+    return (matchId || matchName || isUnassigned) && (w.status === 'Open' || w.status === 'Proses');
+  });
 
   const handleOpenApproveUser = (u: UserProfile) => {
     setSelectedUserForApproval(u);

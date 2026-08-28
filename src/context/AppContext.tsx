@@ -860,7 +860,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const createWorkOrder = (woData: Omit<WorkOrder, 'id' | 'createdAt'> & { id?: string; woNumber?: string; createdAt?: string }) => {
     const count = workOrders.length + 1;
     const woNumber = woData.woNumber || `WO-2026-${count.toString().padStart(4, '0')}`;
-    const id = woData.id || `wo-${count.toString().padStart(2, '0')}`;
+    const id = woData.id || `wo-${Date.now()}`;
     const now = new Date();
     const timeStr = woData.createdAt || woData.woDate || now.toISOString().replace('T', ' ').substring(0, 16);
 
@@ -869,16 +869,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id,
       woNumber,
       createdAt: timeStr,
-      woDate: woData.woDate || timeStr.substring(0, 10)
+      woDate: woData.woDate || timeStr.substring(0, 10),
+      status: woData.status || 'Open'
     };
+
+    // 1. Immediately update state and storage
     setWorkOrders((prev) => [newWO, ...prev]);
 
-    // Save to Supabase
-    supabaseService.insertWorkOrder(newWO).then((created) => {
-      if (created) {
-        setWorkOrders((prev) => prev.map((w) => (w.title === created.title ? created : w)));
-      }
-    });
+    // 2. Asynchronously persist to Supabase
+    if (isSupabaseConfigured()) {
+      supabaseService.insertWorkOrder(newWO).then((created) => {
+        if (created) {
+          setWorkOrders((prev) =>
+            prev.map((w) => (w.id === newWO.id || w.woNumber === created.woNumber ? { ...newWO, ...created, id: created.id } : w))
+          );
+        }
+      }).catch((err) => {
+        console.warn('Supabase WO save error:', err);
+      });
+    }
 
     showToast('success', 'Work Order Diterbitkan', `${newWO.woNumber}: ${newWO.title || newWO.assetName}`);
     addLog('Buat Work Order', 'work_order', id, `Menerbitkan ${newWO.woNumber} [${newWO.priority}] untuk aset ${newWO.assetName}`);

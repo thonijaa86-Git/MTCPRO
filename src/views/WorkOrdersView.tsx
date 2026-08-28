@@ -309,18 +309,41 @@ export const WorkOrdersView: React.FC = () => {
 
   const handleSaveCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formWO.woNumber.trim() || !formWO.assetName.trim()) return;
 
-    const validMaterials = formWO.materials.filter((m) => m.name.trim().length > 0);
+    // Auto-resolve asset info
+    let selectedAsset = assets.find((a) => a.id === formWO.assetId);
+    if (!selectedAsset && assets.length > 0) {
+      selectedAsset = assets[0];
+    }
+    const finalAssetName = formWO.assetName.trim() || selectedAsset?.name || 'Aset Fasilitas';
+    const finalAssetId = formWO.assetId || selectedAsset?.id || '';
+    const finalLocation = formWO.location.trim() || selectedAsset?.location || 'Fasilitas Dahana';
+    const finalWONumber = formWO.woNumber.trim() || `WO-${new Date().getFullYear()}-${(workOrders.length + 1).toString().padStart(4, '0')}`;
+
+    // Resolve technician info
+    let techName = formWO.assignedToName;
+    if (formWO.assignedToId && !techName) {
+      const t = users.find((u) => u.id === formWO.assignedToId);
+      if (t) techName = t.name;
+    }
+
+    // Resolve supervisor info
+    let spvName = formWO.supervisorName;
+    if (formWO.supervisorId && !spvName) {
+      const s = users.find((u) => u.id === formWO.supervisorId);
+      if (s) spvName = s.name;
+    }
+
+    const validMaterials = formWO.materials.filter((m) => m.name && m.name.trim().length > 0);
 
     createWorkOrder({
-      woNumber: formWO.woNumber,
+      woNumber: finalWONumber,
       woDate: formWO.woDate,
-      title: `[${formWO.woCategory}] ${formWO.assetName}`,
-      description: formWO.description || `Pekerjaan ${formWO.jobType} pada aset ${formWO.assetName}.`,
-      assetId: formWO.assetId,
-      assetName: formWO.assetName,
-      location: formWO.location,
+      title: `[${formWO.woCategory}] ${finalAssetName}`,
+      description: formWO.description.trim() || `Pekerjaan ${formWO.jobType} pada ${finalAssetName} di lokasi ${finalLocation}.`,
+      assetId: finalAssetId,
+      assetName: finalAssetName,
+      location: finalLocation,
       priority: formWO.priority,
       woCategory: formWO.woCategory,
       jobType: formWO.jobType,
@@ -329,9 +352,9 @@ export const WorkOrdersView: React.FC = () => {
       dueDate: formWO.endDate,
       vendorName: formWO.vendorName,
       assignedToId: formWO.assignedToId,
-      assignedToName: formWO.assignedToName,
+      assignedToName: techName,
       supervisorId: formWO.supervisorId,
-      supervisorName: formWO.supervisorName,
+      supervisorName: spvName,
       materials: validMaterials,
       photos: formWO.photos,
       status: 'Open',
@@ -352,18 +375,38 @@ export const WorkOrdersView: React.FC = () => {
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingWOId || !formWO.woNumber.trim() || !formWO.assetName.trim()) return;
+    if (!editingWOId) return;
 
-    const validMaterials = formWO.materials.filter((m) => m.name.trim().length > 0);
+    // Resolve asset info
+    let selectedAsset = assets.find((a) => a.id === formWO.assetId);
+    const finalAssetName = formWO.assetName.trim() || selectedAsset?.name || 'Aset Fasilitas';
+    const finalAssetId = formWO.assetId || selectedAsset?.id || '';
+    const finalLocation = formWO.location.trim() || selectedAsset?.location || 'Fasilitas Dahana';
+
+    // Resolve technician info
+    let techName = formWO.assignedToName;
+    if (formWO.assignedToId && !techName) {
+      const t = users.find((u) => u.id === formWO.assignedToId);
+      if (t) techName = t.name;
+    }
+
+    // Resolve supervisor info
+    let spvName = formWO.supervisorName;
+    if (formWO.supervisorId && !spvName) {
+      const s = users.find((u) => u.id === formWO.supervisorId);
+      if (s) spvName = s.name;
+    }
+
+    const validMaterials = formWO.materials.filter((m) => m.name && m.name.trim().length > 0);
 
     updateWorkOrder(editingWOId, {
       woNumber: formWO.woNumber,
       woDate: formWO.woDate,
-      title: `[${formWO.woCategory}] ${formWO.assetName}`,
-      description: formWO.description,
-      assetId: formWO.assetId,
-      assetName: formWO.assetName,
-      location: formWO.location,
+      title: `[${formWO.woCategory}] ${finalAssetName}`,
+      description: formWO.description.trim() || `Pekerjaan ${formWO.jobType} pada ${finalAssetName}.`,
+      assetId: finalAssetId,
+      assetName: finalAssetName,
+      location: finalLocation,
       priority: formWO.priority,
       woCategory: formWO.woCategory,
       jobType: formWO.jobType,
@@ -372,9 +415,9 @@ export const WorkOrdersView: React.FC = () => {
       dueDate: formWO.endDate,
       vendorName: formWO.vendorName,
       assignedToId: formWO.assignedToId,
-      assignedToName: formWO.assignedToName,
+      assignedToName: techName,
       supervisorId: formWO.supervisorId,
-      supervisorName: formWO.supervisorName,
+      supervisorName: spvName,
       materials: validMaterials,
       photos: formWO.photos
     });
@@ -1214,19 +1257,20 @@ export const WorkOrdersView: React.FC = () => {
               <select
                 value={formWO.assignedToId}
                 onChange={(e) => {
-                  const tech = technicians.find((t) => t.id === e.target.value);
+                  const selectedId = e.target.value;
+                  const tech = users.find((t) => t.id === selectedId);
                   setFormWO({
                     ...formWO,
-                    assignedToId: e.target.value,
-                    assignedToName: tech ? tech.name : 'Tim Teknisi'
+                    assignedToId: selectedId,
+                    assignedToName: tech ? tech.name : (selectedId ? 'Tim Teknisi' : '')
                   });
                 }}
                 className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white text-slate-800"
               >
                 <option value="">-- Pilih Teknisi / Pelaksana --</option>
-                {technicians.map((t) => (
+                {users.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.specialization})
+                    {t.name} ({t.position || t.specialization || t.role.toUpperCase()})
                   </option>
                 ))}
               </select>
@@ -1240,11 +1284,12 @@ export const WorkOrdersView: React.FC = () => {
               <select
                 value={formWO.supervisorId}
                 onChange={(e) => {
-                  const spv = supervisors.find((s) => s.id === e.target.value);
+                  const selectedId = e.target.value;
+                  const spv = users.find((s) => s.id === selectedId);
                   setFormWO({
                     ...formWO,
-                    supervisorId: e.target.value,
-                    supervisorName: spv ? spv.name : 'Supervisor MEP'
+                    supervisorId: selectedId,
+                    supervisorName: spv ? spv.name : (selectedId ? 'Supervisor MEP' : '')
                   });
                 }}
                 className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-medium text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white text-slate-800"
@@ -1252,7 +1297,7 @@ export const WorkOrdersView: React.FC = () => {
                 <option value="">-- Pilih Supervisor Pengawas --</option>
                 {supervisors.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.name} ({s.role.toUpperCase()})
+                    {s.name} ({s.position || s.role.toUpperCase()})
                   </option>
                 ))}
               </select>
@@ -1272,6 +1317,7 @@ export const WorkOrdersView: React.FC = () => {
                 onChange={(e) => handleAssetSelectChange(e.target.value)}
                 className="w-full py-1.5 px-3 bg-slate-50 border border-slate-200 rounded-lg font-semibold text-xs focus:outline-hidden focus:border-blue-500 focus:bg-white text-slate-900"
               >
+                <option value="" disabled>-- Pilih Objek Aset --</option>
                 {assets.map((a) => (
                   <option key={a.id} value={a.id}>
                     [{a.assetTag}] {a.name}

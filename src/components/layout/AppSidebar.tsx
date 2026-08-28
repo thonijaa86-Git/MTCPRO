@@ -64,9 +64,17 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ isMobileOpen, setIsMobil
   const pendingUsersCount = users.filter((u) => (u.status || '').toLowerCase().trim() === 'pending' || (u.status || '').toLowerCase().trim() === 'menunggu approval').length;
   const totalApprovalCount = pendingUsersCount;
 
-  const myTasksCount = workOrders.filter(
-    (w) => w.assignedToId === currentUser.id && (w.status === 'Open' || w.status === 'Proses')
-  ).length;
+  const myTasksCount = workOrders.filter((w) => {
+    if (!currentUser) return false;
+    const matchId = w.assignedToId && (w.assignedToId === currentUser.id);
+    const matchName = w.assignedToName && currentUser.name && (
+      w.assignedToName.toLowerCase().trim() === currentUser.name.toLowerCase().trim() ||
+      currentUser.name.toLowerCase().includes(w.assignedToName.toLowerCase()) ||
+      w.assignedToName.toLowerCase().includes(currentUser.name.toLowerCase())
+    );
+    const isUnassigned = !w.assignedToId || w.assignedToName === 'Tim Teknisi' || w.assignedToName === 'Unassigned';
+    return (matchId || matchName || isUnassigned) && (w.status === 'Open' || w.status === 'Proses');
+  }).length;
 
   const handleNavClick = (viewKey: string) => {
     setCurrentView(viewKey);
