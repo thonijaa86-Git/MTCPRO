@@ -215,7 +215,7 @@ export const DashboardView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1.5">
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 uppercase tracking-wider">
-                PORTAL {role}
+                {role.toUpperCase()}
               </span>
               <span className="text-xs text-slate-400">
                 • Gedung Utama & Powerhouse MEP
@@ -226,7 +226,7 @@ export const DashboardView: React.FC = () => {
             </h2>
             <p className="text-xs sm:text-sm text-slate-400 mt-1 max-w-xl">
               {role === 'teknisi'
-                ? `Anda memiliki ${myAssignedWOs.length} Work Order aktif yang perlu ditangani hari ini.`
+                ? `Selamat datang di sistem manajemen operasional pemeliharaan MEP PT DAHANA.`
                 : role === 'supervisor'
                 ? `Terdapat ${totalPendingApproval} item yang menunggu verifikasi dan approval Anda.`
                 : 'Sistem operasional pemeliharaan MEP berjalan normal dengan pemantauan otomatis.'}
@@ -234,23 +234,6 @@ export const DashboardView: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            {role === 'teknisi' ? (
-              <button
-                onClick={() => setCurrentView('teknisi_tasks')}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
-              >
-                <Wrench className="w-4 h-4" />
-                <span>Buka Portal Teknisi ({myAssignedWOs.length})</span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setCurrentView('work_orders')}
-                className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer"
-              >
-                <ClipboardList className="w-4 h-4" />
-                <span>Lihat Work Order</span>
-              </button>
-            )}
             {(role === 'supervisor' || role === 'admin') && (
               <button
                 onClick={() => setCurrentView('supervisor_approval')}

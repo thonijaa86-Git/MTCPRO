@@ -329,9 +329,17 @@ export const WorkOrdersView: React.FC = () => {
 
     // Resolve supervisor info
     let spvName = formWO.supervisorName;
-    if (formWO.supervisorId && !spvName) {
-      const s = users.find((u) => u.id === formWO.supervisorId);
+    let spvId = formWO.supervisorId;
+    if (spvId) {
+      const s = users.find((u) => u.id === spvId);
       if (s) spvName = s.name;
+    }
+    if (!spvName && supervisors.length > 0) {
+      const defaultSpv = supervisors.find((u) => u.role === 'supervisor') || supervisors[0];
+      if (defaultSpv) {
+        spvName = defaultSpv.name;
+        spvId = defaultSpv.id;
+      }
     }
 
     const validMaterials = formWO.materials.filter((m) => m.name && m.name.trim().length > 0);
@@ -353,7 +361,7 @@ export const WorkOrdersView: React.FC = () => {
       vendorName: formWO.vendorName,
       assignedToId: formWO.assignedToId,
       assignedToName: techName,
-      supervisorId: formWO.supervisorId,
+      supervisorId: spvId,
       supervisorName: spvName,
       materials: validMaterials,
       photos: formWO.photos,
@@ -712,7 +720,7 @@ export const WorkOrdersView: React.FC = () => {
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <div className="text-slate-800 font-medium flex items-center gap-1">
                             <ShieldCheck className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                            <span>{wo.supervisorName || wo.approvedByName || '-'}</span>
+                            <span>{wo.supervisorName || users.find((u) => u.id === wo.supervisorId)?.name || wo.approvedByName || '-'}</span>
                           </div>
                         </td>
 
@@ -910,7 +918,7 @@ export const WorkOrdersView: React.FC = () => {
                 <span className="text-[10px] font-bold text-slate-400 uppercase">Supervisor Pengawas:</span>
                 <p className="font-semibold text-blue-800 text-xs mt-0.5 flex items-center gap-1">
                   <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
-                  <span>{selectedWOForDetail.supervisorName || selectedWOForDetail.approvedByName || '-'}</span>
+                  <span>{selectedWOForDetail.supervisorName || users.find((u) => u.id === selectedWOForDetail.supervisorId)?.name || selectedWOForDetail.approvedByName || '-'}</span>
                 </p>
               </div>
               <div>

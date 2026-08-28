@@ -38,8 +38,8 @@
 
   /* Prevent browser autofill from making inputs bright white */
   input:-webkit-autofill,
-  input:-webkit-autofill:hover, 
-  input:-webkit-autofill:focus, 
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
   input:-webkit-autofill:active {
     -webkit-box-shadow: 0 0 0 1000px #020617 inset !important;
     -webkit-text-fill-color: #f8fafc !important;
