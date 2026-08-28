@@ -439,94 +439,33 @@ export const AuthView: React.FC = () => {
             )}
           </div>
 
-          {/* Right Security & System Information Panel */}
-          <div className="lg:col-span-5 space-y-4">
-            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 shadow-xl backdrop-blur-xl">
-              <div className="flex items-center gap-2.5 mb-3 text-blue-400">
-                <ShieldCheck className="w-5 h-5" />
-                <h3 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Protokol Keamanan & Otorisasi
+          {/* Right Column: Official MTCPRO Brand Showcase */}
+          <div className="lg:col-span-5 flex flex-col justify-center">
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-8 shadow-2xl backdrop-blur-xl flex flex-col items-center justify-center text-center relative overflow-hidden group">
+              {/* Subtle background industrial radial glow */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#1e3a8a_0,transparent_70%)] opacity-25 group-hover:opacity-40 transition-opacity pointer-events-none" />
+              
+              {/* Official MTCPRO Logo */}
+              <div className="relative z-10 w-full max-w-[340px] p-4 bg-white/95 rounded-2xl shadow-xl border border-slate-700/50 mb-6 flex items-center justify-center">
+                <img
+                  src="/logo.png"
+                  alt="MTCPRO Maintenance Management System"
+                  className="w-full h-auto object-contain max-h-[300px] hover:scale-102 transition-transform duration-300"
+                />
+              </div>
+
+              {/* Company Branding & Subtitle */}
+              <div className="relative z-10 space-y-2">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-950 border border-slate-800 text-[11px] font-mono font-semibold text-blue-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>PT DAHANA (Persero)</span>
+                </div>
+                <h3 className="text-sm font-bold text-white tracking-wide uppercase">
+                  Facility Maintenance System
                 </h3>
-              </div>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                Aplikasi <strong>MTCPRO</strong> menerapkan pengamanan berlapis berbasis <em>Role-Based Access Control (RBAC)</em>. Setiap pengguna wajib masuk menggunakan kredensial email dan kata sandi yang valid.
-              </p>
-
-              <div className="space-y-3">
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-rose-500/10 text-rose-400 shrink-0 mt-0.5">
-                    <Shield className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Administrator</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Kontrol penuh database fasilitas, persetujuan user baru, dan konfigurasi hak akses menu 01 s/d 10.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 shrink-0 mt-0.5">
-                    <UserCheck className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Supervisor</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Otorisasi Work Order perbaikan, pengawasan jadwal preventif, dan verifikasi penyelesaian tugas.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-400 shrink-0 mt-0.5">
-                    <Wrench className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Teknisi MEP</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Eksekusi tugas pemeliharaan lapangan, update status WO, dan pencatatan pemakaian material part.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
-                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400 shrink-0 mt-0.5">
-                    <Briefcase className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-white">Manager</h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      Monitoring ringkasan eksekutif, analisa performa MTTR/MTBF, dan laporan utilisasi aset.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* MEP Categories Summary */}
-            <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex items-center justify-around text-center">
-              <div className="flex flex-col items-center">
-                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 mb-1">
-                  <Cpu className="w-4 h-4" />
-                </div>
-                <span className="text-[11px] font-medium text-slate-300">Mechanical</span>
-                <span className="text-[10px] text-slate-500">HVAC & Pompa</span>
-              </div>
-              <div className="w-px h-8 bg-slate-800" />
-              <div className="flex flex-col items-center">
-                <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400 mb-1">
-                  <Zap className="w-4 h-4" />
-                </div>
-                <span className="text-[11px] font-medium text-slate-300">Electrical</span>
-                <span className="text-[10px] text-slate-500">Genset & Panel</span>
-              </div>
-              <div className="w-px h-8 bg-slate-800" />
-              <div className="flex flex-col items-center">
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 mb-1">
-                  <Droplets className="w-4 h-4" />
-                </div>
-                <span className="text-[11px] font-medium text-slate-300">Plumbing</span>
-                <span className="text-[10px] text-slate-500">Booster & IPAL</span>
+                <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
+                  Sistem Otomasi Pemeliharaan Terpadu Mechanical, Electrical, dan Plumbing.
+                </p>
               </div>
             </div>
           </div>
