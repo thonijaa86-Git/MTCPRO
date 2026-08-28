@@ -26,8 +26,7 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
     setCurrentView,
     notifications,
     markNotificationAsRead,
-    markAllNotificationsAsRead,
-    resetAllData
+    markAllNotificationsAsRead
   } = useApp();
 
   const [showNotifDropdown, setShowNotifDropdown] = useState(false);
@@ -199,15 +198,6 @@ export const Header: React.FC<HeaderProps> = ({ onToggleMobileSidebar }) => {
             </>
           )}
         </div>
-
-        {/* Reset Demo Data */}
-        <button
-          onClick={resetAllData}
-          title="Kembalikan data contoh ke pengaturan awal"
-          className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer border border-transparent hover:border-slate-200"
-        >
-          <RefreshCw className="w-4 h-4" />
-        </button>
       </div>
     </header>
   );

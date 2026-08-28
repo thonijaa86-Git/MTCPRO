@@ -127,9 +127,6 @@ interface AppContextType {
   // Notification Actions
   markNotificationAsRead: (id: string) => void;
   markAllNotificationsAsRead: () => void;
-  
-  // Reset Data to Factory Defaults
-  resetAllData: () => void;
 }
 
 type SparePartsState = SparePart[];
@@ -1402,21 +1399,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     showToast('info', 'Notifikasi Dibaca', 'Semua notifikasi ditandai telah dibaca.');
   };
 
-  const resetAllData = () => {
-    localStorage.clear();
-    setUsers(INITIAL_USERS);
-    setCurrentUser(INITIAL_USERS[0]);
-    setMenuPermissions(INITIAL_MENU_PERMISSIONS);
-    setAssets(INITIAL_ASSETS);
-    setWorkOrders(INITIAL_WORK_ORDERS);
-    setSchedules(INITIAL_SCHEDULES);
-    setSpareParts(INITIAL_SPARE_PARTS);
-    setVendors(INITIAL_VENDORS);
-    setLogs(INITIAL_LOGS);
-    setNotifications(INITIAL_NOTIFICATIONS);
-    showToast('success', 'Reset Data Berhasil', 'Semua data telah dikembalikan ke kondisi awal (factory defaults).');
-  };
-
   return (
     <AppContext.Provider
       value={{
@@ -1487,8 +1469,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deleteVendor,
         deleteBulkVendors,
         markNotificationAsRead,
-        markAllNotificationsAsRead,
-        resetAllData
+        markAllNotificationsAsRead
       }}
     >
       {children}
